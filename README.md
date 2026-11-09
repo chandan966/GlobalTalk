@@ -48,6 +48,13 @@ npm run build
 ```
 Deploy `frontend/dist` to Cloudflare Pages (or another static host) and set the same environment variable in its build settings.
 
+### Deploy frontend to Vercel
+- Set the Vercel project **Root Directory** to `frontend` (the folder containing `package.json` and `vercel.json`).
+- Use the Vite defaults: build command `npm run build` and output directory `dist`.
+- Add `VITE_CHAT_WS_URL` to the Vercel project's Environment Variables for every deployment environment. Its value must be the Cloudflare Worker WebSocket endpoint, for example `wss://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev/ws` (do not include a room name or a trailing slash).
+- Redeploy after changing the environment variable; Vite embeds it during the build. Production does not fall back to the Vercel domain for WebSocket connections.
+
+`frontend/vercel.json` rewrites the React room and safety routes to the Vite entry page for direct navigation and refreshes. It also sets browser security headers, including a Content Security Policy that permits the Cloudflare secure WebSocket endpoint and the Google Fonts used by the interface.
+
 ## Production notes
 This is an MVP, not a fully moderated production social network. Nicknames and country labels are unverified and temporary. Reports are written to Worker logs; there is no moderator dashboard. Messages are not persisted. Add moderation workflows, abuse detection, monitoring, privacy/legal review and load testing before public launch. Hosting can incur charges if provider free-tier limits are exceeded.
-
