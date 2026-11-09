@@ -7,3 +7,30 @@
   text-align: center;
   padding: 100px;
 }
+.runtime-error {
+  max-width: 680px;
+  margin: 90px auto;
+  padding: 32px 22px;
+  text-align: center;
+}
+
+.runtime-error h1 {
+  margin: 16px 0;
+  font: 600 clamp(34px, 6vw, 52px)/1.1 'Space Grotesk';
+}
+
+.runtime-error p {
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.runtime-error .button {
+  margin: 16px 12px;
+  cursor: pointer;
+}
+
+.runtime-error > a {
+  display: block;
+  color: #a9b8ff;
+  font-size: 13px;
+}

@@ -1,9 +1,15 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { rooms } from '../data/rooms';
+import usePageMetadata from '../utils/usePageMetadata';
 import './HomePage.css';
 
 export default function HomePage() {
+  usePageMetadata(
+    'Meet the world',
+    'Join live public chat rooms for conversations about interests, communities, and life around the world.',
+    '/',
+  );
   const [search, setSearch] = useState('');
   const filteredRooms = rooms.filter((room) =>
     `${room.name} ${room.description}`.toLowerCase().includes(search.toLowerCase()),
@@ -46,6 +52,7 @@ export default function HomePage() {
           <label className="search">
             <span>⌕</span>
             <input
+              aria-label="Search chat rooms"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search rooms..."

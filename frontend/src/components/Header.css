@@ -50,6 +50,11 @@
   margin-right: 8px;
 }
 
+.topbar a:focus-visible,
+.footer-links a:focus-visible {
+  border-radius: 2px;
+}
+
 @media (max-width: 560px) {
   .topbar {
     height: 65px;

@@ -1,0 +1,44 @@
+.contact-page .lead {
+  font-size: 15px;
+}
+
+.contact-topics {
+  margin-top: 25px;
+}
+
+.contact-topic {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.contact-topic h2 {
+  font: 600 17px 'Space Grotesk';
+  margin: 0 0 6px;
+}
+
+.contact-topic p,
+.contact-address {
+  color: #9eacc5;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.contact-topic a,
+.contact-address a {
+  color: #a7b6ff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.contact-not-configured {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: #c7d2e8;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.contact-not-configured code {
+  color: #a7b6ff;
+}

@@ -9,7 +9,7 @@ export default function Header() {
       </Link>
       <nav>
         <Link to="/">Rooms</Link>
-        <a href="/#about">About</a>
+        <Link to="/about">About</Link>
         <Link to="/safety">Safety</Link>
       </nav>
       <span className="live-label">

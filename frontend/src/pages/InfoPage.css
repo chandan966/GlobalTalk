@@ -1,0 +1,25 @@
+.info-page .lead {
+  font-size: 15px;
+}
+
+.info-page-section {
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.info-page-section h2 {
+  font: 600 18px 'Space Grotesk';
+  margin: 0 0 10px;
+}
+
+.info-page-section p {
+  color: #9eacc5;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.info-page-contact a {
+  color: #a7b6ff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://globaltalk-tau-plum-26.vercel.app/sitemap.xml

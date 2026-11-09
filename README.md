@@ -74,5 +74,12 @@ Deploy `frontend/dist` to Cloudflare Pages (or another static host) and set the 
 
 `frontend/vercel.json` rewrites the React room and safety routes to the Vite entry page for direct navigation and refreshes. It also sets browser security headers, including a Content Security Policy that permits the Cloudflare secure WebSocket endpoint and the Google Fonts used by the interface.
 
+### Public site settings
+- Set `VITE_SITE_URL` to the public canonical origin if you use a custom domain. Update `frontend/public/robots.txt` and `frontend/public/sitemap.xml` to use that same domain.
+- Set `VITE_CONTACT_EMAIL` to a real public inbox before launch. Until it is set, the Contact page explains that no address is configured.
+- `VITE_*` variables are embedded in the public frontend bundle. Never put private credentials in them; use Cloudflare secrets for backend-only credentials.
+- `frontend/public/ads.txt` is only a placeholder comment. After AdSense approves the site, replace it with the exact seller record copied from the account, in the form `google.com, pub-<publisher-id>, DIRECT, f08c47fec0942fa0`. Do not include the `ca-` product prefix or use a sample ID.
+- AdSense scripts and placements are not enabled. The current restrictive CSP blocks third-party ad scripts; Google recommends nonce-based strict CSP for AdSense, so prepare that deployment mechanism before enabling ads rather than broadly allowing third-party scripts.
+
 ## Production notes
 This is an MVP, not a fully moderated production social network. Nicknames and country labels are unverified and temporary. Reports are written to Worker logs; there is no moderator dashboard. Messages are not persisted. Add moderation workflows, abuse detection, monitoring, privacy/legal review and load testing before public launch. Hosting can incur charges if provider free-tier limits are exceeded.

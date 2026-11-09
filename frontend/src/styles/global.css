@@ -29,6 +29,14 @@ select {
   font: inherit;
 }
 
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid #8ea4ff;
+  outline-offset: 3px;
+}
+
 .eyebrow {
   font-size: 10px;
   letter-spacing: 2px;

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import usePageMetadata from '../utils/usePageMetadata';
 import './SafetyPage.css';
 
 const safetyTips = [
@@ -22,6 +23,12 @@ const safetyTips = [
 ];
 
 export default function SafetyPage() {
+  usePageMetadata(
+    'Safety',
+    'Safety advice and reporting information for public GlobalTalk chat rooms.',
+    '/safety',
+  );
+
   return (
     <main className="text-page">
       <Link to="/" className="back-link">

@@ -18,13 +18,28 @@ footer .brand-mark {
   height: 24px;
 }
 
+.footer-links {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.footer-links a {
+  color: #aab7d0;
+}
+
 @media (max-width: 560px) {
   footer {
     gap: 12px;
     flex-wrap: wrap;
   }
 
-  footer > span:nth-child(2) {
+  .footer-tagline {
     display: none;
+  }
+
+  .footer-links {
+    order: 3;
+    width: 100%;
   }
 }

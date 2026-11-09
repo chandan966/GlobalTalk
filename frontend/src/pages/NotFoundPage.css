@@ -1,0 +1,17 @@
+.not-found-page {
+  width: min(850px, 100%);
+  margin: 60px auto;
+  padding: 0 22px 100px;
+}
+
+.not-found-page h1 {
+  font: 600 clamp(42px, 6vw, 68px)/1.08 'Space Grotesk';
+  letter-spacing: -3px;
+  margin: 22px 0 18px;
+}
+
+.not-found-page p {
+  color: #9eacc5;
+  line-height: 1.8;
+  margin-bottom: 28px;
+}

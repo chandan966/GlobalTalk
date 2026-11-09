@@ -2,6 +2,9 @@ name = "globaltalk-api"
 main = "src/index.js"
 compatibility_date = "2026-10-01"
 
+[vars]
+FRONTEND_ORIGINS = "https://globaltalk-tau-plum-26.vercel.app"
+
 [[durable_objects.bindings]]
 name = "CHAT_ROOM"
 class_name = "ChatRoom"

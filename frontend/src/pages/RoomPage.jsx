@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { chatWebSocketUrl } from '../config/chat';
 import { rooms } from '../data/rooms';
 import randomName from '../utils/randomName';
+import usePageMetadata from '../utils/usePageMetadata';
 import './RoomPage.css';
 
 const countries = [
@@ -18,11 +19,47 @@ const countries = [
   'Other',
 ];
 
+function readSessionValue(key) {
+  try {
+    return sessionStorage.getItem(key) || '';
+  } catch {
+    return '';
+  }
+}
+
+function writeSessionValue(key, value) {
+  try {
+    sessionStorage.setItem(key, value);
+  } catch {
+    // Chat remains usable when browser storage is unavailable.
+  }
+}
+
+function isChatMessage(message) {
+  return (
+    message &&
+    typeof message === 'object' &&
+    !Array.isArray(message) &&
+    typeof message.id === 'string' &&
+    typeof message.name === 'string' &&
+    typeof message.text === 'string' &&
+    Number.isFinite(message.time)
+  );
+}
+
 export default function RoomPage() {
   const { roomId } = useParams();
   const room = rooms.find((item) => item.id === roomId);
-  const [name, setName] = useState(() => sessionStorage.getItem('gt-name') || randomName());
-  const [country, setCountry] = useState(() => sessionStorage.getItem('gt-country') || '');
+  usePageMetadata(
+    room ? room.name : 'Room not found',
+    room
+      ? `${room.description}. Join the live public ${room.name} room on GlobalTalk.`
+      : 'The requested GlobalTalk chat room could not be found.',
+    room ? `/room/${room.id}` : '/',
+    'noindex, nofollow',
+  );
+  const [name, setName] = useState(() => readSessionValue('gt-name') || randomName());
+  const [country, setCountry] = useState(() => readSessionValue('gt-country'));
   const [draft, setDraft] = useState('');
   const [messages, setMessages] = useState([]);
   const [status, setStatus] = useState('connecting');
@@ -43,30 +80,105 @@ export default function RoomPage() {
       return;
     }
 
-    const ws = new WebSocket(`${chatWebSocketUrl}/${room.id}`);
-    socket.current = ws;
+    let active = true;
+    let reconnectAttempt = 0;
+    let reconnectTimer;
+    let stableConnectionTimer;
+    let activeSocket;
 
-    ws.onopen = () => {
-      setStatus('connected');
-      ws.send(JSON.stringify({ type: 'join', name, country }));
+    const scheduleReconnect = () => {
+      if (!active) return;
+      const baseDelay = Math.min(1000 * 2 ** reconnectAttempt, 30000);
+      const delay = Math.round(baseDelay * (0.75 + Math.random() * 0.5));
+      reconnectAttempt = Math.min(reconnectAttempt + 1, 6);
+      reconnectTimer = window.setTimeout(connect, delay);
     };
 
-    ws.onmessage = (event) => {
+    const connect = () => {
+      if (!active) return;
+
+      let ws;
       try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'history') setMessages(data.messages || []);
-        if (data.type === 'message')
-          setMessages((previous) => [...previous, data.message].slice(-150));
-        if (data.type === 'presence') setOnline(data.count);
-        if (data.type === 'error') setError(data.message);
-      } catch {}
+        ws = new WebSocket(`${chatWebSocketUrl}/${room.id}`);
+      } catch {
+        setStatus('reconnecting');
+        setError('Chat connection could not start. Retrying shortly.');
+        scheduleReconnect();
+        return;
+      }
+
+      activeSocket = ws;
+      socket.current = ws;
+
+      ws.onopen = () => {
+        if (!active) return;
+        window.clearTimeout(stableConnectionTimer);
+        stableConnectionTimer = window.setTimeout(() => {
+          reconnectAttempt = 0;
+        }, 30000);
+        setStatus('connected');
+        setError('');
+        try {
+          ws.send(JSON.stringify({ type: 'join', name, country }));
+        } catch {
+          ws.close();
+        }
+      };
+
+      ws.onmessage = (event) => {
+        if (!active) return;
+        try {
+          const data = JSON.parse(event.data);
+          if (!data || typeof data !== 'object' || Array.isArray(data)) return;
+
+          if (data.type === 'history' && Array.isArray(data.messages)) {
+            setMessages(data.messages.filter(isChatMessage).slice(-150));
+          } else if (data.type === 'message' && isChatMessage(data.message)) {
+            setMessages((previous) => [...previous, data.message].slice(-150));
+          } else if (
+            data.type === 'presence' &&
+            Number.isInteger(data.count) &&
+            data.count >= 0
+          ) {
+            setOnline(data.count);
+          } else if (data.type === 'error' && typeof data.message === 'string') {
+            setError(data.message.slice(0, 240));
+          } else if (data.type === 'report_result' && typeof data.message === 'string') {
+            setError(data.message.slice(0, 240));
+          }
+        } catch {
+          // Ignore malformed or unexpected WebSocket data.
+        }
+      };
+
+      ws.onerror = () => {
+        if (active) {
+          setStatus('error');
+          setError('Chat connection problem. Trying to reconnect.');
+        }
+      };
+
+      ws.onclose = () => {
+        if (!active) return;
+        window.clearTimeout(stableConnectionTimer);
+        if (socket.current === ws) socket.current = null;
+        setOnline(0);
+        setStatus('reconnecting');
+        setError('Chat disconnected. Reconnecting…');
+        scheduleReconnect();
+      };
     };
 
-    ws.onerror = () => setStatus('error');
-    ws.onclose = () => setStatus('disconnected');
+    connect();
 
-    return () => ws.close();
-  }, [roomId]);
+    return () => {
+      active = false;
+      window.clearTimeout(reconnectTimer);
+      window.clearTimeout(stableConnectionTimer);
+      if (socket.current === activeSocket) socket.current = null;
+      activeSocket?.close(1000, 'Room closed');
+    };
+  }, [roomId, name, country]);
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ behavior: 'smooth' });
@@ -86,30 +198,43 @@ export default function RoomPage() {
       return;
     }
 
-    socket.current.send(JSON.stringify({ type: 'message', text }));
-    setDraft('');
-    setError('');
+    try {
+      socket.current.send(JSON.stringify({ type: 'message', text }));
+      setDraft('');
+      setError('');
+    } catch {
+      setError('Your message could not be sent. Reconnecting…');
+    }
   };
 
   const reportMessage = (message) => {
-    socket.current?.send(
-      JSON.stringify({ type: 'report', messageId: message.id, reason: 'User report' }),
-    );
-    setBlocked((previous) => [...previous, message.id]);
-    setError('Message hidden and report submitted.');
+    if (socket.current?.readyState !== WebSocket.OPEN) {
+      setError('The report could not be sent because chat is disconnected.');
+      return;
+    }
+
+    try {
+      socket.current.send(
+        JSON.stringify({ type: 'report', messageId: message.id, reason: 'User report' }),
+      );
+      setBlocked((previous) => [...previous, message.id]);
+      setError('Message hidden for you. Report sent to the service.');
+    } catch {
+      setError('The report could not be sent. Please try again.');
+    }
   };
 
   const updateNickname = () => {
     const nextName = randomName();
     setName(nextName);
-    sessionStorage.setItem('gt-name', nextName);
-    setError('Nickname changed locally. Refresh the room to apply it.');
+    writeSessionValue('gt-name', nextName);
+    setError('Nickname updated.');
   };
 
   const updateCountry = (event) => {
     const nextCountry = event.target.value;
     setCountry(nextCountry);
-    sessionStorage.setItem('gt-country', nextCountry);
+    writeSessionValue('gt-country', nextCountry);
   };
 
   if (!room) {
@@ -141,11 +266,16 @@ export default function RoomPage() {
           <div className="sidebar-room">
             {room.icon} {room.name}
           </div>
-          <div className="sidebar-stat">
-            <i className={`status-dot ${status === 'connected' ? '' : 'offline'}`} />
+          <div className="sidebar-stat" role="status" aria-live="polite">
+            <i
+              className={`status-dot ${status === 'connected' ? '' : 'offline'}`}
+              aria-hidden="true"
+            />
             {status}
           </div>
-          <div className="sidebar-stat">◉ {online} online</div>
+          <div className="sidebar-stat" aria-label={`${online} people online`}>
+            ◉ {online} online
+          </div>
 
           <hr />
           <div className="sidebar-label">YOUR IDENTITY</div>
@@ -180,7 +310,13 @@ export default function RoomPage() {
             <span className="secure-label">✦ Anonymous chat</span>
           </div>
 
-          <div className="messages">
+          <div
+            className="messages"
+            role="log"
+            aria-label={`${room.name} room messages`}
+            aria-live="polite"
+            aria-relevant="additions"
+          >
             {!visibleMessages.length && (
               <div className="welcome-chat">
                 <div>👋</div>
@@ -204,7 +340,11 @@ export default function RoomPage() {
                         minute: '2-digit',
                       })}
                     </time>
-                    <button title="Hide and report" onClick={() => reportMessage(message)}>
+                    <button
+                      title="Hide and report"
+                      aria-label={`Hide and report message from ${message.name || 'Guest'}`}
+                      onClick={() => reportMessage(message)}
+                    >
                       ⚑
                     </button>
                   </div>
@@ -217,13 +357,16 @@ export default function RoomPage() {
 
           <div className="composer-wrap">
             {error && (
-              <div className="inline-error">
+              <div className="inline-error" role="status" aria-live="polite">
                 {error}
-                <button onClick={() => setError('')}>×</button>
+                <button aria-label="Dismiss chat notice" onClick={() => setError('')}>
+                  ×
+                </button>
               </div>
             )}
             <div className="composer">
               <input
+                aria-label="Write a chat message"
                 value={draft}
                 maxLength={500}
                 onChange={(event) => setDraft(event.target.value)}
