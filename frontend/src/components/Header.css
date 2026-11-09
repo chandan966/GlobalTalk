@@ -1,0 +1,67 @@
+.topbar {
+  height: 76px;
+  padding: 0 max(calc((100% - 1160px) / 2), 5%);
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  gap: 48px;
+  background: #090f1fcc;
+  position: relative;
+  z-index: 2;
+}
+
+.brand {
+  font: 700 21px 'Space Grotesk';
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 31px;
+  height: 31px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #7b8dff, #45d4df);
+  color: #091326;
+}
+
+.topbar nav {
+  display: flex;
+  gap: 30px;
+  color: #aab7d0;
+  font-size: 13px;
+}
+
+.live-label {
+  margin-left: auto;
+  font-size: 10px;
+  letter-spacing: 1.4px;
+  color: #9db0ca;
+}
+
+.live-label i {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  background: #4de0ae;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+@media (max-width: 560px) {
+  .topbar {
+    height: 65px;
+    gap: 15px;
+  }
+
+  .topbar nav {
+    gap: 13px;
+    font-size: 11px;
+  }
+
+  .live-label {
+    display: none;
+  }
+}

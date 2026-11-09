@@ -6,13 +6,18 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "format": "prettier --config .prettierrc.json --write \"src/**/*.{js,jsx,css}\" \"index.html\" \"vite.config.js\" \"vercel.json\" \"package.json\" \"../backend/src/**/*.js\" \"../backend/package.json\"",
+    "format:check": "prettier --config .prettierrc.json --check \"src/**/*.{js,jsx,css}\" \"index.html\" \"vite.config.js\" \"vercel.json\" \"package.json\" \"../backend/src/**/*.js\" \"../backend/package.json\""
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
-    "vite": "latest",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.28.0"
+    "react-router-dom": "^6.28.0",
+    "vite": "latest"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.10"
   }
 }

@@ -11,6 +11,24 @@ A real-time, anonymous-by-default chat-room starter project.
 - Responsive React interface.
 - No conventional database or persistent chat history.
 
+## Frontend structure
+
+```text
+frontend/src/
+  components/   Header.jsx + Header.css, Footer.jsx + Footer.css
+  config/       WebSocket connection configuration
+  data/         Chat room definitions
+  pages/        HomePage, RoomPage, and SafetyPage with matching CSS files
+  styles/       Global styles shared across the application
+  utils/        Shared helpers such as nickname generation
+  App.jsx + App.css  Client-side routes and shared page styles
+  main.jsx      React entry point
+```
+
+Run `npm run format` from `frontend` to format frontend and backend source files.
+Each page and component imports its adjacent CSS file. Global fonts, colors, and reset styles
+are kept in `styles/global.css`.
+
 ## Requirements
 - Node.js 20+ and npm.
 - Cloudflare account only for deployment; local development works without one.
