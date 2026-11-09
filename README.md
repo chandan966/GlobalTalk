@@ -6,6 +6,8 @@ A real-time, anonymous-by-default chat-room starter project.
 - Global Chat, India Chat, Music, Gaming, Movies, Technology, Sports, Friendship, Education, Memes, Language and Travel rooms.
 - Temporary generated nicknames; no account or email required.
 - Real-time WebSocket messaging and live participant counts.
+- Optional one-to-one random video calls using WebRTC and Worker signaling.
+- Camera/microphone controls, Next, End, reporting, and session-only block behavior.
 - Basic message length and rate limits.
 - Session-only local hide list and report action.
 - Responsive React interface.
@@ -18,7 +20,7 @@ frontend/src/
   components/   Header.jsx + Header.css, Footer.jsx + Footer.css
   config/       WebSocket connection configuration
   data/         Chat room definitions
-  pages/        HomePage, RoomPage, and SafetyPage with matching CSS files
+  pages/        HomePage, RoomPage, VideoChatPage, and SafetyPage with matching CSS files
   styles/       Global styles shared across the application
   utils/        Shared helpers such as nickname generation
   App.jsx + App.css  Client-side routes and shared page styles
@@ -49,6 +51,12 @@ npm run dev
 ```
 Open the Vite URL, normally `http://localhost:5173`. If you extracted the project elsewhere, replace the paths with your actual folder path.
 
+The local Worker permits direct ICE only for `localhost` requests so local sessions can test signaling without a TURN account. Local direct calls can expose participants' network addresses to each other; do not expose the local Worker publicly. Production Worker hosts require TURN and do not fall back to direct ICE.
+```powershell
+cd "D:\Web development\PROJECT\New folder\backend"
+npm run dev
+```
+
 ## Deploy backend
 ```powershell
 cd "D:\Web development\PROJECT\New folder\backend"
@@ -72,7 +80,19 @@ Deploy `frontend/dist` to Cloudflare Pages (or another static host) and set the 
 - Add `VITE_CHAT_WS_URL` to the Vercel project's Environment Variables for every deployment environment. Its value must be the Cloudflare Worker WebSocket endpoint, for example `wss://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev/ws` (do not include a room name or a trailing slash).
 - Redeploy after changing the environment variable; Vite embeds it during the build. Production does not fall back to the Vercel domain for WebSocket connections.
 
-`frontend/vercel.json` rewrites the React room and safety routes to the Vite entry page for direct navigation and refreshes. It also sets browser security headers, including a Content Security Policy that permits the Cloudflare secure WebSocket endpoint and the Google Fonts used by the interface.
+`frontend/vercel.json` rewrites React routes to the Vite entry page for direct navigation and refreshes. It also sets browser security headers, including a Content Security Policy that permits the Cloudflare secure WebSocket endpoint and the Google Fonts used by the interface. Camera and microphone are allowed only for the GlobalTalk page origin.
+
+## Random video calls
+
+- The frontend captures camera and microphone only after the user presses **Start Random Video** and accepts the safety notice.
+- A dedicated `VideoMatchmaker` Durable Object pairs waiting sessions and forwards validated offer, answer, and ICE signaling messages. Existing text-chat Durable Objects and message handling are separate.
+- Media uses WebRTC and never passes through the Worker. Production ICE configuration is relay-only so call participants do not receive each other’s direct IP candidates.
+- Production calls stay disabled until a TURN relay is configured. No TURN provider or credentials are included in the repository.
+- Configure `VIDEO_TURN_URLS` as a comma-separated list of your TURN endpoints in the Cloudflare Worker environment. Configure `TURN_SHARED_SECRET` with `npx wrangler secret put TURN_SHARED_SECRET`; set the same secret in a Coturn deployment configured for its REST API (`use-auth-secret`). The Worker generates short-lived credentials. Do not put the shared secret in Vercel, `VITE_*` variables, source control, or frontend code.
+- The TURN service needs a valid TLS certificate for `turns:` endpoints and reachable relay ports. Provider and bandwidth costs depend on the TURN host and call traffic; no provider has been selected or purchased.
+- For local-only development, direct P2P testing can be enabled with `npm run dev -- --var VIDEO_ALLOW_DIRECT_P2P:true` in `backend`. It uses local ICE candidates and can expose test participants’ network addresses to each other; never set that mode on a public deployment. It is not the production privacy mode.
+- Blocking excludes the current temporary session from rematching during that signaling connection. Anonymous users can reconnect with a new session, so permanent blocking is not guaranteed. Reports are logged but are not actively reviewed.
+- Video calls are not age-verified or moderated. Another participant can record their screen with separate software. Keep the safety notice and privacy disclosures accurate before enabling the feature for the public.
 
 ### Public site settings
 - Set `VITE_SITE_URL` to the public canonical origin if you use a custom domain. Update `frontend/public/robots.txt` and `frontend/public/sitemap.xml` to use that same domain.

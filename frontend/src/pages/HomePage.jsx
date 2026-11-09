@@ -7,7 +7,7 @@ import './HomePage.css';
 export default function HomePage() {
   usePageMetadata(
     'Meet the world',
-    'Join live public chat rooms for conversations about interests, communities, and life around the world.',
+    'Join live public chat rooms or meet a random stranger for a one-to-one video conversation.',
     '/',
   );
   const [search, setSearch] = useState('');
@@ -35,6 +35,9 @@ export default function HomePage() {
           <a className="button primary" href="#rooms">
             Explore chat rooms <span>↗</span>
           </a>
+          <Link className="button video-cta" to="/random-video">
+            Random video chat <span>↗</span>
+          </Link>
           <span className="privacy-note">✦ Anonymous by default</span>
         </div>
         <div className="hero-orbit orbit-one" />

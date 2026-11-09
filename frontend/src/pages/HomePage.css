@@ -32,6 +32,7 @@
 
 .hero-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 22px;
   margin-top: 28px;
@@ -53,6 +54,12 @@
 
 .primary span {
   margin-left: 14px;
+}
+
+.video-cta {
+  border: 1px solid var(--line);
+  background: #101a2b;
+  color: #dce7ff;
 }
 
 .privacy-note {

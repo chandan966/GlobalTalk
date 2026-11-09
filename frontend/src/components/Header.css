@@ -58,12 +58,12 @@
 @media (max-width: 560px) {
   .topbar {
     height: 65px;
-    gap: 15px;
+    gap: 10px;
   }
 
   .topbar nav {
-    gap: 13px;
-    font-size: 11px;
+    gap: 9px;
+    font-size: 10px;
   }
 
   .live-label {

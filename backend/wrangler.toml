@@ -9,6 +9,14 @@ FRONTEND_ORIGINS = "https://globaltalk-tau-plum-26.vercel.app"
 name = "CHAT_ROOM"
 class_name = "ChatRoom"
 
+[[durable_objects.bindings]]
+name = "VIDEO_MATCHMAKER"
+class_name = "VideoMatchmaker"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["ChatRoom"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["VideoMatchmaker"]

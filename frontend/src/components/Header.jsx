@@ -9,6 +9,7 @@ export default function Header() {
       </Link>
       <nav>
         <Link to="/">Rooms</Link>
+        <Link to="/random-video">Video</Link>
         <Link to="/about">About</Link>
         <Link to="/safety">Safety</Link>
       </nav>

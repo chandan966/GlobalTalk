@@ -19,6 +19,14 @@ const safetyTips = [
     'Report messages',
     'Use the flag icon to hide a message and send a report to the service logs. Reports are not automatically reviewed in this starter version.',
   ],
+  [
+    'Use video carefully',
+    'Random video connects you with strangers. Do not share sensitive information. Another person may record their screen, and GlobalTalk does not verify age or identity.',
+  ],
+  [
+    'Block and leave',
+    'End the call or block the other person if you feel uncomfortable. Session-only blocking cannot guarantee that the same person will not return later.',
+  ],
   ['Leave when uncomfortable', 'Close the tab or leave the room if a conversation feels unsafe.'],
 ];
 

@@ -1,20 +1,20 @@
 export const sitePages = {
   about: {
     title: 'About GlobalTalk',
-    description: 'Learn how GlobalTalk public chat rooms work and what the service provides.',
+    description: 'Learn how GlobalTalk chat rooms and random video calls work.',
     path: '/about',
     sections: [
       {
         heading: 'A place for live conversations',
         paragraphs: [
-          'GlobalTalk is a browser-based chat service with public rooms for general conversation, interests, and communities. Choose a room and join without creating an account.',
+          'GlobalTalk is a browser-based communication service with public text rooms and an optional one-to-one random video feature. Choose how you want to connect without creating an account.',
           'The app uses temporary generated nicknames. Country is optional. Messages are sent to the room in real time and are not saved as chat history by the application.',
         ],
       },
       {
         heading: 'Use the service thoughtfully',
         paragraphs: [
-          'Rooms are public. Do not share passwords, contact details, financial information, private images, or precise location. Messages and room activity may be visible to other people in the same room.',
+          'Rooms and random video calls connect you with strangers. Do not share passwords, contact details, financial information, private images, or precise location. Other people may record their screens with separate software.',
           'The report control can hide a message in your current browser session and send report metadata to service logs. GlobalTalk does not currently have a staffed moderation dashboard, so reports are not guaranteed to be reviewed.',
         ],
       },
@@ -28,14 +28,14 @@ export const sitePages = {
   },
   privacy: {
     title: 'Privacy Policy',
-    description: 'What GlobalTalk handles when you use anonymous public chat rooms.',
+    description: 'What GlobalTalk handles when you use anonymous text chat and optional video calls.',
     path: '/privacy',
     sections: [
       {
         heading: 'Information handled by GlobalTalk',
         paragraphs: [
           'The app creates a temporary nickname in your browser. If you choose a country, that selection is also stored in session storage. The nickname and optional country are sent to the Cloudflare Worker when you join a room and are shown to people in that room.',
-          'This version does not offer video or audio chat, request camera or microphone access, or record audio or video.',
+          'If you choose Random Video and press Start, your browser asks for camera and microphone permission. The call sends audio and video through WebRTC, directly through a TURN relay in production. The Cloudflare Worker handles matchmaking and signaling, not media. GlobalTalk does not record or store call media. Another participant could record their screen using separate software.',
           'Messages you send are transmitted through the Worker to people connected to the same room. The application does not save chat history or store messages in a database.',
           'When you report a message, the Worker writes the message ID, room, temporary nickname, and report time to service logs. The report does not include the message text. Reports are not actively reviewed in the current starter service.',
         ],
@@ -50,13 +50,13 @@ export const sitePages = {
         heading: 'Infrastructure providers and technical data',
         paragraphs: [
           'The frontend is hosted by Vercel and chat connections are handled by Cloudflare Workers and Durable Objects. These providers may process network and diagnostic data, such as IP addresses and request information, to deliver and protect their services. Their processing and retention are governed by their own terms and privacy notices and by the project account configuration.',
-          'The GlobalTalk application code does not read or display users’ IP addresses or device identifiers. Google Fonts are requested from Google Fonts when the page loads.',
+          'Production video calls use relay-only WebRTC to avoid sharing your direct IP address with the other participant. The TURN relay provider still processes network information needed to relay media. The GlobalTalk application does not display IP addresses or device identifiers to other users. Google Fonts are requested from Google Fonts when the page loads.',
         ],
       },
       {
         heading: 'Retention and security',
         paragraphs: [
-          'The application does not retain message history. Nickname and country values remain in browser session storage for the tab session. Report metadata may remain in Cloudflare service logs under the retention settings of the deployment account; GlobalTalk does not currently set a separate report-log retention period.',
+          'The application does not retain message history or call media. Nickname and country values remain in browser session storage for the tab session. Video reports include a reason and temporary call-session reference in service logs; chat reports include message metadata. These logs may remain under the retention settings of the deployment account, and there is no staffed moderation team.',
           'The service uses HTTPS/WSS, input validation, and abuse limits. No internet service can guarantee absolute security.',
         ],
       },
@@ -78,28 +78,28 @@ export const sitePages = {
   },
   terms: {
     title: 'Terms of Service',
-    description: 'Rules and limitations for using the GlobalTalk public chat service.',
+    description: 'Rules and limitations for using GlobalTalk chat and random video.',
     path: '/terms',
     sections: [
       {
         heading: 'Using GlobalTalk',
         paragraphs: [
           'By using GlobalTalk, you agree to follow these terms and the Community Guidelines. Use the service only where permitted by applicable law and only if you are legally able to agree to these terms.',
-          'GlobalTalk is an anonymous-by-default public chat service. You are responsible for the messages you send and for choosing what information to share.',
+          'GlobalTalk is an anonymous-by-default public communication service. You are responsible for what you say and show. The service does not verify age or identity.',
         ],
       },
       {
         heading: 'Prohibited conduct',
         paragraphs: [
           'Do not post illegal content, threats, harassment, hateful or abusive content, spam, scams, malware, sexual exploitation content, or another person’s private information. Do not impersonate others or attack, overload, reverse engineer, or disrupt the service.',
-          'Do not use chat messages to distribute executable content or to deceive other users. Messages are displayed as text; this does not make unsafe links or instructions safe.',
+          'Do not record, distribute, or misuse another user’s video or personal information. Do not use chat messages to distribute executable content or deceive other users. A video call may still be recorded by another participant using separate software.',
         ],
       },
       {
         heading: 'Moderation and availability',
         paragraphs: [
           'GlobalTalk may restrict connections or change the service to address abuse, security, legal, or operational concerns. The current report feature writes limited metadata to service logs but there is no staffed moderation team and no guarantee that a report will be reviewed.',
-          'The service is provided on an evolving basis and may be changed, interrupted, or discontinued. Chat messages are not retained as history.',
+          'The service is provided on an evolving basis and may be changed, interrupted, or discontinued. Chat messages and call media are not retained by the GlobalTalk application.',
         ],
       },
       {
@@ -127,7 +127,7 @@ export const sitePages = {
         heading: 'Do',
         paragraphs: [
           'Be respectful, keep conversation relevant to the room, and remember that people may have different backgrounds and views.',
-          'Protect your privacy. Use a temporary nickname and share only information you are comfortable making visible to everyone in the room.',
+          'Protect your privacy. Use a temporary nickname and share only information you are comfortable showing or saying to a stranger.',
           'Leave a room or hide a message if a conversation makes you uncomfortable.',
         ],
       },
@@ -141,7 +141,7 @@ export const sitePages = {
       {
         heading: 'Report and moderation',
         paragraphs: [
-          'Use the flag control to hide a message for yourself and submit limited report metadata. Reports are currently written to service logs and are not guaranteed to be reviewed by a person.',
+          'Use the report control to submit a reason and limited report metadata. Reports are written to service logs and are not guaranteed to be reviewed by a person. Blocking only lasts for the current anonymous session.',
           'If someone is in immediate danger, contact local emergency services. GlobalTalk is not an emergency response service.',
         ],
       },
