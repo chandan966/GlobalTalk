@@ -35,6 +35,7 @@ export const sitePages = {
         heading: 'Information handled by GlobalTalk',
         paragraphs: [
           'The app creates a temporary nickname in your browser. If you choose a country, that selection is also stored in session storage. The nickname and optional country are sent to the Cloudflare Worker when you join a room and are shown to people in that room.',
+          'This version does not offer video or audio chat, request camera or microphone access, or record audio or video.',
           'Messages you send are transmitted through the Worker to people connected to the same room. The application does not save chat history or store messages in a database.',
           'When you report a message, the Worker writes the message ID, room, temporary nickname, and report time to service logs. The report does not include the message text. Reports are not actively reviewed in the current starter service.',
         ],

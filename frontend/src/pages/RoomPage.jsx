@@ -70,6 +70,14 @@ export default function RoomPage() {
   const bottom = useRef(null);
 
   useEffect(() => {
+    setMessages([]);
+    setOnline(0);
+    setError('');
+    setBlocked([]);
+    setDraft('');
+  }, [roomId]);
+
+  useEffect(() => {
     if (!room) return;
 
     if (!chatWebSocketUrl) {
@@ -132,7 +140,8 @@ export default function RoomPage() {
           if (!data || typeof data !== 'object' || Array.isArray(data)) return;
 
           if (data.type === 'history' && Array.isArray(data.messages)) {
-            setMessages(data.messages.filter(isChatMessage).slice(-150));
+            const history = data.messages.filter(isChatMessage).slice(-150);
+            if (history.length > 0) setMessages(history);
           } else if (data.type === 'message' && isChatMessage(data.message)) {
             setMessages((previous) => [...previous, data.message].slice(-150));
           } else if (

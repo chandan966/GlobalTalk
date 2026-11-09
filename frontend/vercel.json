@@ -49,7 +49,11 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data:; connect-src 'self' wss:; upgrade-insecure-requests"
+          "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data:; connect-src 'self' wss://globaltalk-api.globaltalk-chat.workers.dev; upgrade-insecure-requests"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "https://globaltalk-tau-plum-26.vercel.app"
         },
         {
           "key": "Referrer-Policy",
