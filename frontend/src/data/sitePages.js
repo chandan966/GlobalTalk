@@ -28,7 +28,8 @@ export const sitePages = {
   },
   privacy: {
     title: 'Privacy Policy',
-    description: 'What GlobalTalk handles when you use anonymous text chat and optional video calls.',
+    description:
+      'What GlobalTalk handles when you use anonymous text chat and optional video calls.',
     path: '/privacy',
     sections: [
       {

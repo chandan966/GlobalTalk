@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { chatWebSocketUrl } from '../config/chat';
 import { rooms } from '../data/rooms';
 import randomName from '../utils/randomName';
+import { sanitizeText } from '../utils/sanitize';
 import usePageMetadata from '../utils/usePageMetadata';
 import './RoomPage.css';
 
@@ -144,11 +145,7 @@ export default function RoomPage() {
             if (history.length > 0) setMessages(history);
           } else if (data.type === 'message' && isChatMessage(data.message)) {
             setMessages((previous) => [...previous, data.message].slice(-150));
-          } else if (
-            data.type === 'presence' &&
-            Number.isInteger(data.count) &&
-            data.count >= 0
-          ) {
+          } else if (data.type === 'presence' && Number.isInteger(data.count) && data.count >= 0) {
             setOnline(data.count);
           } else if (data.type === 'error' && typeof data.message === 'string') {
             setError(data.message.slice(0, 240));
@@ -199,10 +196,10 @@ export default function RoomPage() {
   );
 
   const sendMessage = () => {
-    const text = draft.trim();
+    const text = sanitizeText(draft, 500);
     if (!text || socket.current?.readyState !== WebSocket.OPEN) return;
 
-    if (text.length > 500) {
+    if (Array.from(text).length > 500) {
       setError('Messages must be 500 characters or fewer.');
       return;
     }

@@ -5,8 +5,14 @@ import './ContactPage.css';
 
 const contactTopics = [
   ['General questions', 'Questions about the service or room features.'],
-  ['Abuse reports', 'Include the room and message ID if available. Do not send sensitive personal information.'],
-  ['Privacy requests', 'Describe your request without including passwords or unnecessary private data.'],
+  [
+    'Abuse reports',
+    'Include the room and message ID if available. Do not send sensitive personal information.',
+  ],
+  [
+    'Privacy requests',
+    'Describe your request without including passwords or unnecessary private data.',
+  ],
   ['Advertising', 'Questions about advertising or a future AdSense integration.'],
 ];
 

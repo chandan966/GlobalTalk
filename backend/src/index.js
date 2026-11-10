@@ -62,7 +62,12 @@ export default {
 
     if (url.pathname === '/video') {
       if (request.method !== 'GET') {
-        return secureResponse('Method not allowed', 405, { Allow: 'GET' }, url.protocol === 'https:');
+        return secureResponse(
+          'Method not allowed',
+          405,
+          { Allow: 'GET' },
+          url.protocol === 'https:',
+        );
       }
 
       if (request.headers.get('Upgrade')?.toLowerCase() !== 'websocket') {
@@ -94,7 +99,12 @@ export default {
 
     if (url.pathname === '/ws' || url.pathname.startsWith('/ws/')) {
       if (request.method !== 'GET') {
-        return secureResponse('Method not allowed', 405, { Allow: 'GET' }, url.protocol === 'https:');
+        return secureResponse(
+          'Method not allowed',
+          405,
+          { Allow: 'GET' },
+          url.protocol === 'https:',
+        );
       }
 
       if (request.headers.get('Upgrade')?.toLowerCase() !== 'websocket') {
@@ -149,9 +159,7 @@ export class ChatRoom {
     this.state = state;
     this.env = env;
     this.roomMessageTimes = [];
-    this.state.setWebSocketAutoResponse(
-      new WebSocketRequestResponsePair('ping', 'pong'),
-    );
+    this.state.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'));
   }
 
   async fetch(request) {
@@ -160,7 +168,12 @@ export class ChatRoom {
       request.headers.get('Upgrade')?.toLowerCase() !== 'websocket' ||
       !isAllowedOrigin(request, this.env)
     ) {
-      return secureResponse('Invalid WebSocket request', 400, {}, new URL(request.url).protocol === 'https:');
+      return secureResponse(
+        'Invalid WebSocket request',
+        400,
+        {},
+        new URL(request.url).protocol === 'https:',
+      );
     }
 
     if (this.state.getWebSockets().length >= MAX_ROOM_CONNECTIONS) {
@@ -208,7 +221,11 @@ export class ChatRoom {
 
     if (data.type === 'join') {
       if (socketData.joined) {
-        this.rejectInvalidMessage(socket, socketData, 'Profile is already set for this connection.');
+        this.rejectInvalidMessage(
+          socket,
+          socketData,
+          'Profile is already set for this connection.',
+        );
         return;
       }
 
@@ -261,9 +278,7 @@ export class ChatRoom {
     }
 
     const now = Date.now();
-    const recentMessages = socketData.messageTimes.filter(
-      (time) => now - time < MESSAGE_WINDOW_MS,
-    );
+    const recentMessages = socketData.messageTimes.filter((time) => now - time < MESSAGE_WINDOW_MS);
 
     if (now - socketData.lastMessageAt < MESSAGE_COOLDOWN_MS) {
       socketData.messageTimes = recentMessages;
@@ -285,9 +300,7 @@ export class ChatRoom {
       return;
     }
 
-    const roomMessages = this.roomMessageTimes.filter(
-      (time) => now - time < MESSAGE_WINDOW_MS,
-    );
+    const roomMessages = this.roomMessageTimes.filter((time) => now - time < MESSAGE_WINDOW_MS);
 
     if (roomMessages.length >= MAX_ROOM_MESSAGES_PER_WINDOW) {
       this.roomMessageTimes = roomMessages;
@@ -332,9 +345,7 @@ export class ChatRoom {
     }
 
     const now = Date.now();
-    const recentReports = socketData.reportTimes.filter(
-      (time) => now - time < REPORT_WINDOW_MS,
-    );
+    const recentReports = socketData.reportTimes.filter((time) => now - time < REPORT_WINDOW_MS);
 
     if (recentReports.length >= MAX_REPORTS_PER_WINDOW) {
       socketData.reportTimes = recentReports;
@@ -422,12 +433,7 @@ export class VideoMatchmaker {
       request.headers.get('Upgrade')?.toLowerCase() !== 'websocket' ||
       !isAllowedOrigin(request, this.env)
     ) {
-      return secureResponse(
-        'Invalid video WebSocket request',
-        400,
-        {},
-        url.protocol === 'https:',
-      );
+      return secureResponse('Invalid video WebSocket request', 400, {}, url.protocol === 'https:');
     }
 
     if (this.state.getWebSockets().length >= MAX_VIDEO_CONNECTIONS) {
@@ -746,10 +752,7 @@ export class VideoMatchmaker {
     socketData.peerId = '';
     socketData.initiator = false;
     if (previousPeerId) {
-      socketData.blockedPeerIds = addVideoBlockedPeer(
-        socketData.blockedPeerIds,
-        previousPeerId,
-      );
+      socketData.blockedPeerIds = addVideoBlockedPeer(socketData.blockedPeerIds, previousPeerId);
     }
 
     if (!peer) return;
@@ -757,10 +760,7 @@ export class VideoMatchmaker {
     peerData.peerId = '';
     peerData.initiator = false;
     if (socketData.sessionId) {
-      peerData.blockedPeerIds = addVideoBlockedPeer(
-        peerData.blockedPeerIds,
-        socketData.sessionId,
-      );
+      peerData.blockedPeerIds = addVideoBlockedPeer(peerData.blockedPeerIds, socketData.sessionId);
     }
     if (peerData.status === 'matched') peerData.status = 'idle';
     this.saveVideoSocketData(peer.socket, peerData);
@@ -949,9 +949,7 @@ function readVideoSocketData(socket) {
               .filter((value) => typeof value === 'string' && value.length <= 64)
               .slice(-MAX_VIDEO_BLOCKED_PEERS)
           : [],
-        invalidMessages: Number.isInteger(data.invalidMessages)
-          ? data.invalidMessages
-          : 0,
+        invalidMessages: Number.isInteger(data.invalidMessages) ? data.invalidMessages : 0,
       };
     }
   } catch {
@@ -985,7 +983,9 @@ async function createVideoIceConfig(env, hostname, sessionId) {
       ['sign'],
     );
     const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(username));
-    const credential = btoa(Array.from(new Uint8Array(signature), (byte) => String.fromCharCode(byte)).join(''));
+    const credential = btoa(
+      Array.from(new Uint8Array(signature), (byte) => String.fromCharCode(byte)).join(''),
+    );
 
     return {
       iceServers: [{ urls: turnUrls, username, credential }],
@@ -1048,11 +1048,14 @@ function validateVideoSignal(rawSignal) {
 
     const { sdpMid, sdpMLineIndex, usernameFragment } = rawSignal.candidate;
     if (
-      (sdpMid !== null && sdpMid !== undefined &&
+      (sdpMid !== null &&
+        sdpMid !== undefined &&
         (typeof sdpMid !== 'string' || sdpMid.length > 128)) ||
-      (sdpMLineIndex !== null && sdpMLineIndex !== undefined &&
+      (sdpMLineIndex !== null &&
+        sdpMLineIndex !== undefined &&
         (!Number.isInteger(sdpMLineIndex) || sdpMLineIndex < 0 || sdpMLineIndex > 32)) ||
-      (usernameFragment !== null && usernameFragment !== undefined &&
+      (usernameFragment !== null &&
+        usernameFragment !== undefined &&
         (typeof usernameFragment !== 'string' || usernameFragment.length > 256))
     ) {
       return null;
@@ -1101,11 +1104,18 @@ function secureResponse(body, status, headers = {}, isHttps = false) {
   responseHeaders.set('X-Content-Type-Options', 'nosniff');
   responseHeaders.set('X-Frame-Options', 'DENY');
   responseHeaders.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  responseHeaders.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  responseHeaders.set(
+    'Permissions-Policy',
+    'camera=(), microphone=(), geolocation=(), display-capture=(), payment=(), usb=()',
+  );
+  responseHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
+  responseHeaders.set('Cross-Origin-Resource-Policy', 'same-origin');
+  responseHeaders.set('X-Permitted-Cross-Domain-Policies', 'none');
+  responseHeaders.set('X-XSS-Protection', '0');
   if (isHttps) {
     responseHeaders.set(
       'Strict-Transport-Security',
-      'max-age=31536000; includeSubDomains; preload',
+      'max-age=63072000; includeSubDomains; preload',
     );
   }
 
