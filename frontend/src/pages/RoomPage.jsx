@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import AgeGateModal from '../components/AgeGateModal';
 import { chatWebSocketUrl } from '../config/chat';
 import { rooms } from '../data/rooms';
 import randomName from '../utils/randomName';
@@ -67,6 +68,10 @@ export default function RoomPage() {
   const [online, setOnline] = useState(0);
   const [error, setError] = useState('');
   const [blocked, setBlocked] = useState([]);
+  const [blockedSenders, setBlockedSenders] = useState([]);
+  const [ageVerified, setAgeVerified] = useState(
+    () => readSessionValue('gt-age-gate-status') === 'verified',
+  );
   const socket = useRef(null);
   const bottom = useRef(null);
 
@@ -75,6 +80,7 @@ export default function RoomPage() {
     setOnline(0);
     setError('');
     setBlocked([]);
+    setBlockedSenders([]);
     setDraft('');
   }, [roomId]);
 
@@ -203,8 +209,11 @@ export default function RoomPage() {
   }, [messages]);
 
   const visibleMessages = useMemo(
-    () => messages.filter((message) => !blocked.includes(message.id)),
-    [messages, blocked],
+    () =>
+      messages.filter(
+        (message) => !blocked.includes(message.id) && !blockedSenders.includes(message.name),
+      ),
+    [messages, blocked, blockedSenders],
   );
 
   const sendMessage = () => {
@@ -225,6 +234,12 @@ export default function RoomPage() {
     }
   };
 
+  const blockUser = (senderName) => {
+    if (!senderName || senderName === name) return;
+    setBlockedSenders((previous) => [...previous, senderName]);
+    setError(`User ${senderName} blocked for this session. All their messages are hidden.`);
+  };
+
   const reportMessage = (message) => {
     if (socket.current?.readyState !== WebSocket.OPEN) {
       setError('The report could not be sent because chat is disconnected.');
@@ -236,7 +251,10 @@ export default function RoomPage() {
         JSON.stringify({ type: 'report', messageId: message.id, reason: 'User report' }),
       );
       setBlocked((previous) => [...previous, message.id]);
-      setError('Message hidden for you. Report sent to the service.');
+      if (message.name && message.name !== name) {
+        setBlockedSenders((previous) => [...previous, message.name]);
+      }
+      setError(`Report recorded. All messages from ${message.name || 'this user'} are now hidden.`);
     } catch {
       setError('The report could not be sent. Please try again.');
     }
@@ -265,153 +283,166 @@ export default function RoomPage() {
   }
 
   return (
-    <main className="chat-page">
-      <Link to="/" className="back-link">
-        ← All rooms
-      </Link>
+    <>
+      {!ageVerified && <AgeGateModal onVerified={() => setAgeVerified(true)} />}
+      <main className="chat-page">
+        <Link to="/" className="back-link">
+          ← All rooms
+        </Link>
 
-      <div className="chat-room-title">
-        <span>{room.icon}</span>
-        <div>
-          <h1>{room.name}</h1>
-          <p>{room.description}</p>
+        <div className="chat-room-title">
+          <span>{room.icon}</span>
+          <div>
+            <h1>{room.name}</h1>
+            <p>{room.description}</p>
+          </div>
         </div>
-      </div>
 
-      <div className="chat-layout">
-        <aside className="room-sidebar">
-          <div className="sidebar-label">YOUR ROOM</div>
-          <div className="sidebar-room">
-            {room.icon} {room.name}
-          </div>
-          <div className="sidebar-stat" role="status" aria-live="polite">
-            <i
-              className={`status-dot ${status === 'connected' ? '' : 'offline'}`}
-              aria-hidden="true"
-            />
-            {status}
-          </div>
-          <div className="sidebar-stat" aria-label={`${online} people online`}>
-            ◉ {online} online
-          </div>
-
-          <hr />
-          <div className="sidebar-label">YOUR IDENTITY</div>
-          <b>{name}</b>
-          <small className="identity-country">{country || 'Country not selected'}</small>
-          <button className="text-button" onClick={updateNickname}>
-            ↻ New nickname
-          </button>
-
-          <label className="country-label">
-            Country (optional)
-            <select value={country} onChange={updateCountry}>
-              <option value="">Prefer not to say</option>
-              {countries.map((item) => (
-                <option key={item}>{item}</option>
-              ))}
-            </select>
-          </label>
-
-          <hr />
-          <p className="sidebar-tip">
-            Never share passwords, financial details, or your home address.
-          </p>
-        </aside>
-
-        <section className="chat-panel">
-          <div className="chat-panel-top">
-            <div>
-              <b>Room conversation</b>
-              <small>Live messages · Auto-clears every 45s</small>
+        <div className="chat-layout">
+          <aside className="room-sidebar">
+            <div className="sidebar-label">YOUR ROOM</div>
+            <div className="sidebar-room">
+              {room.icon} {room.name}
             </div>
-            <span className="secure-label">✦ Anonymous · 45s Reset</span>
-          </div>
+            <div className="sidebar-stat" role="status" aria-live="polite">
+              <i
+                className={`status-dot ${status === 'connected' ? '' : 'offline'}`}
+                aria-hidden="true"
+              />
+              {status}
+            </div>
+            <div className="sidebar-stat" aria-label={`${online} people online`}>
+              ◉ {online} online
+            </div>
 
-          <div
-            className="messages"
-            role="log"
-            aria-label={`${room.name} room messages`}
-            aria-live="polite"
-            aria-relevant="additions"
-          >
-            {!visibleMessages.length && (
-              <div className="welcome-chat">
-                <div>👋</div>
-                <h3>You're in {room.name}</h3>
-                <p>Say hello and start a conversation.</p>
+            <hr />
+            <div className="sidebar-label">YOUR IDENTITY</div>
+            <b>{name}</b>
+            <small className="identity-country">{country || 'Country not selected'}</small>
+            <button className="text-button" onClick={updateNickname}>
+              ↻ New nickname
+            </button>
+
+            <label className="country-label">
+              Country (optional)
+              <select value={country} onChange={updateCountry}>
+                <option value="">Prefer not to say</option>
+                {countries.map((item) => (
+                  <option key={item}>{item}</option>
+                ))}
+              </select>
+            </label>
+
+            <hr />
+            <p className="sidebar-tip">
+              Never share passwords, financial details, or your home address.
+            </p>
+          </aside>
+
+          <section className="chat-panel">
+            <div className="chat-panel-top">
+              <div>
+                <b>Room conversation</b>
+                <small>Live messages · Auto-clears every 45s</small>
               </div>
-            )}
-            {visibleMessages.map((message, index) => (
-              <article
-                className={`message ${message.name === name ? 'mine' : ''}`}
-                key={message.id || index}
-              >
-                <div className="avatar">{(message.name || '?')[0].toUpperCase()}</div>
-                <div className="message-body">
-                  <div className="message-meta">
-                    <b>{message.name || 'Guest'}</b>
-                    {message.country && <span>{message.country}</span>}
-                    <time>
-                      {new Date(message.time || Date.now()).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </time>
-                    <button
-                      title="Hide and report"
-                      aria-label={`Hide and report message from ${message.name || 'Guest'}`}
-                      onClick={() => reportMessage(message)}
-                    >
-                      ⚑
-                    </button>
-                  </div>
-                  <p>{message.text}</p>
-                </div>
-              </article>
-            ))}
-            <div ref={bottom} />
-          </div>
+              <span className="secure-label">✦ Anonymous · 45s Reset</span>
+            </div>
 
-          <div className="composer-wrap">
-            {error && (
-              <div className="inline-error" role="status" aria-live="polite">
-                {error}
-                <button aria-label="Dismiss chat notice" onClick={() => setError('')}>
-                  ×
+            <div
+              className="messages"
+              role="log"
+              aria-label={`${room.name} room messages`}
+              aria-live="polite"
+              aria-relevant="additions"
+            >
+              {!visibleMessages.length && (
+                <div className="welcome-chat">
+                  <div>👋</div>
+                  <h3>You're in {room.name}</h3>
+                  <p>Say hello and start a conversation.</p>
+                </div>
+              )}
+              {visibleMessages.map((message, index) => (
+                <article
+                  className={`message ${message.name === name ? 'mine' : ''}`}
+                  key={message.id || index}
+                >
+                  <div className="avatar">{(message.name || '?')[0].toUpperCase()}</div>
+                  <div className="message-body">
+                    <div className="message-meta">
+                      <b>{message.name || 'Guest'}</b>
+                      {message.country && <span>{message.country}</span>}
+                      <time>
+                        {new Date(message.time || Date.now()).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </time>
+                      <button
+                        title="Hide and report"
+                        aria-label={`Hide and report message from ${message.name || 'Guest'}`}
+                        onClick={() => reportMessage(message)}
+                      >
+                        ⚑
+                      </button>
+                      {message.name !== name && (
+                        <button
+                          title={`Block all messages from ${message.name || 'this user'}`}
+                          aria-label={`Block all messages from ${message.name || 'this user'}`}
+                          onClick={() => blockUser(message.name)}
+                          className="block-user-btn"
+                        >
+                          🚫
+                        </button>
+                      )}
+                    </div>
+                    <p>{message.text}</p>
+                  </div>
+                </article>
+              ))}
+              <div ref={bottom} />
+            </div>
+
+            <div className="composer-wrap">
+              {error && (
+                <div className="inline-error" role="status" aria-live="polite">
+                  {error}
+                  <button aria-label="Dismiss chat notice" onClick={() => setError('')}>
+                    ×
+                  </button>
+                </div>
+              )}
+              <div className="composer">
+                <input
+                  aria-label="Write a chat message"
+                  value={draft}
+                  maxLength={500}
+                  onChange={(event) => setDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !event.shiftKey) {
+                      event.preventDefault();
+                      sendMessage();
+                    }
+                  }}
+                  placeholder={status === 'connected' ? 'Write a message...' : 'Connecting...'}
+                  disabled={status !== 'connected'}
+                />
+                <span className="char-count">{draft.length}/500</span>
+                <button
+                  className="send-button"
+                  onClick={sendMessage}
+                  disabled={!draft.trim() || status !== 'connected'}
+                >
+                  Send ↑
                 </button>
               </div>
-            )}
-            <div className="composer">
-              <input
-                aria-label="Write a chat message"
-                value={draft}
-                maxLength={500}
-                onChange={(event) => setDraft(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' && !event.shiftKey) {
-                    event.preventDefault();
-                    sendMessage();
-                  }
-                }}
-                placeholder={status === 'connected' ? 'Write a message...' : 'Connecting...'}
-                disabled={status !== 'connected'}
-              />
-              <span className="char-count">{draft.length}/500</span>
-              <button
-                className="send-button"
-                onClick={sendMessage}
-                disabled={!draft.trim() || status !== 'connected'}
-              >
-                Send ↑
-              </button>
+              <div className="composer-note">
+                Press Enter to send · Keep personal information private
+              </div>
             </div>
-            <div className="composer-note">
-              Press Enter to send · Keep personal information private
-            </div>
-          </div>
-        </section>
-      </div>
-    </main>
+          </section>
+        </div>
+      </main>
+    </>
   );
 }

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import AdSenseBanner from '../components/AdSenseBanner';
 import { contactEmail, grievanceOfficer } from '../config/site';
@@ -17,8 +18,19 @@ const contactTopics = [
   ['Advertising', 'Inquiries regarding compliant static advertising partnerships.'],
 ];
 
-// Toggle flag: set to true whenever you want to re-enable the Statutory Grievance Redressal section
-const ENABLE_STATUTORY_GRIEVANCE = false;
+// Toggle flag: Statutory Grievance Redressal enabled under Rule 3(2) of IT Rules, 2021
+const ENABLE_STATUTORY_GRIEVANCE = true;
+
+const GRIEVANCE_CATEGORIES = [
+  'Rule 3(1)(b) Prohibited Content / Hate Speech / Defamation',
+  'Rule 3(2)(b) Non-Consensual Intimate Imagery / Deepfakes',
+  'Rule 3(1)(b) Child Sexual Abuse Material (CSAM)',
+  'Intellectual Property / Copyright Infringement',
+  'Impersonation / Synthetic Audio-Video Deception',
+  'Privacy Violation / Personal Data Breach',
+  'Court Order / Law Enforcement Directive',
+  'Other Statutory Grievance',
+];
 
 export default function ContactPage() {
   usePageMetadata(
@@ -26,6 +38,24 @@ export default function ContactPage() {
     'Contact GlobalTalk for general questions, abuse reports, privacy requests, and statutory grievance redressal under Indian IT Rules.',
     '/contact',
   );
+
+  const [ticketCategory, setTicketCategory] = useState(GRIEVANCE_CATEGORIES[0]);
+  const [ticketRoom, setTicketRoom] = useState('global');
+  const [ticketDescription, setTicketDescription] = useState('');
+  const [generatedTicket, setGeneratedTicket] = useState('');
+
+  const handleCreateTicket = () => {
+    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const rand = Math.floor(1000 + Math.random() * 9000);
+    const ticket = `GT-GRIEV-${dateStr}-${rand}`;
+    setGeneratedTicket(ticket);
+  };
+
+  const istTime = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+  const emailSubject = generatedTicket
+    ? `[TICKET: ${generatedTicket}] Statutory Grievance: ${ticketCategory}`
+    : `Statutory Grievance Notice under IT Rules — GlobalTalk`;
+  const emailBody = `Grievance Tracking Ticket: ${generatedTicket || '[Click Generate Ticket first]'}\nCategory: ${ticketCategory}\nRoom/Feature: ${ticketRoom}\nTimestamp (IST): ${istTime}\n\nDetailed Description of Incident / Content:\n${ticketDescription || '[Please describe the content, message ID, or violating conduct in detail]'}\n\nStatutory Declaration:\nI declare that the information provided in this grievance is true and correct to the best of my knowledge and belief.`;
 
   return (
     <main className="text-page contact-page">
@@ -129,23 +159,16 @@ export default function ContactPage() {
             </div>
           </div>
 
-          {!grievanceOfficer.name || !grievanceOfficer.email ? (
-            <div className="prelaunch-blocker" role="alert">
-              <h3>⚠️ Pre-Launch Legal Blocker: Resident Grievance Officer Unconfigured</h3>
-              <p>
-                Under Rule 3(2) of the Information Technology (Intermediary Guidelines and Digital
-                Media Ethics Code) Rules, 2021, an intermediary must publish the true name, official
-                email address, and physical office address of its designated Resident Grievance
-                Officer in India before opening the platform to the public.
-              </p>
-              <p>
-                <strong>Required Action:</strong> Set <code>VITE_GRIEVANCE_OFFICER_NAME</code>,{' '}
-                <code>VITE_GRIEVANCE_OFFICER_EMAIL</code>, and{' '}
-                <code>VITE_GRIEVANCE_OFFICER_ADDRESS</code> in your production environment settings
-                prior to launch.
-              </p>
+          {!grievanceOfficer.hasPhysicalAddress && (
+            <div className="prelaunch-warning-notice" role="note">
+              <strong>Notice on Physical Office Address:</strong> Under Rule 3(2) of the Information
+              Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021, an
+              intermediary must publish the verifiable physical office address of its designated
+              Resident Grievance Officer in India. Currently,{' '}
+              <code>VITE_GRIEVANCE_OFFICER_ADDRESS</code> is pending configuration by the platform
+              owner in production settings.
             </div>
-          ) : null}
+          )}
 
           <div className="grievance-timelines">
             <h3>Statutory Response Schedules (IT Rules, as amended 2026)</h3>
@@ -173,11 +196,80 @@ export default function ContactPage() {
             </ul>
           </div>
 
-          <p className="grievance-instructions">
-            <strong>How to file a formal grievance:</strong> Send an email to the official grievance
-            address above. Please specify the room name, exact date and time (IST), description of
-            the violating content or conduct, and attach a copy of the formal government/court order
-            if applicable.
+          {/* Interactive Grievance Complaint & Tracking Ticket Generator */}
+          <div className="grievance-ticket-box">
+            <h3>File a Formal Grievance with Tracking Ticket</h3>
+            <p className="grievance-ticket-subtitle">
+              Select the statutory category, room name, and describe the issue to generate a unique
+              tracking ticket ID and pre-fill your formal statutory grievance notice.
+            </p>
+            <div className="grievance-form-grid">
+              <label>
+                Statutory Violation Category
+                <select
+                  value={ticketCategory}
+                  onChange={(e) => setTicketCategory(e.target.value)}
+                  className="grievance-select"
+                >
+                  {GRIEVANCE_CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Room or Feature Concerned
+                <input
+                  type="text"
+                  value={ticketRoom}
+                  onChange={(e) => setTicketRoom(e.target.value)}
+                  placeholder="e.g. global, india, random-video"
+                  className="grievance-input"
+                />
+              </label>
+              <label className="full-width">
+                Description &amp; Specific Incident Details
+                <textarea
+                  rows={3}
+                  value={ticketDescription}
+                  onChange={(e) => setTicketDescription(e.target.value)}
+                  placeholder="Describe the violating message, temporary nickname, date/time, and attach government order if applicable..."
+                  className="grievance-textarea"
+                />
+              </label>
+            </div>
+            <div className="grievance-ticket-actions">
+              {!generatedTicket ? (
+                <button type="button" className="button primary" onClick={handleCreateTicket}>
+                  🎟️ Generate Official Tracking Ticket ID
+                </button>
+              ) : (
+                <div className="generated-ticket-display">
+                  <div>
+                    <span className="ticket-label">Your Generated Complaint Ticket:</span>
+                    <strong className="ticket-code">{generatedTicket}</strong>
+                  </div>
+                  <a
+                    href={`mailto:${grievanceOfficer.email || contactEmail}?subject=${encodeURIComponent(
+                      emailSubject,
+                    )}&body=${encodeURIComponent(emailBody)}`}
+                    className="button primary email-ticket-btn"
+                  >
+                    ✉️ Open Email with Pre-filled Grievance Notice
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <p className="grievance-safe-harbor-note">
+            <em>
+              Statutory Safe Harbor Advisory: Intermediary status under Section 79 of the
+              Information Technology Act, 2000 is conditional on strict observance of statutory due
+              diligence under the IT Rules, 2021 (as amended 2026) and does not represent an
+              unconditional or judicial guarantee of immunity.
+            </em>
           </p>
         </section>
       )}

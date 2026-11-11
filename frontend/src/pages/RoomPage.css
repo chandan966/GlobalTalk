@@ -231,6 +231,16 @@
   background: none;
   color: #8292ad;
   cursor: pointer;
+  padding: 0 3px;
+  font-size: 11px;
+}
+
+.message-meta button:hover {
+  color: #dbe5fb;
+}
+
+.block-user-btn:hover {
+  color: #fca5a5 !important;
 }
 
 .message-body > p {

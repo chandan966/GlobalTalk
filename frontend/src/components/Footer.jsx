@@ -14,10 +14,12 @@ export default function Footer() {
         <Link to="/about">About</Link>
         <Link to="/safety">Safety</Link>
         <Link to="/guidelines">Community Guidelines</Link>
-        <Link to="/contact">Support</Link>
+        <Link to="/grievance">Grievance</Link>
         <Link to="/contact">Contact</Link>
         <Link to="/privacy">Privacy</Link>
         <Link to="/terms">Terms</Link>
+        <Link to="/cookies">Cookies</Link>
+        <Link to="/copyright">Copyright</Link>
       </nav>
       <span className="footer-copyright">© {new Date().getFullYear()} GlobalTalk</span>
     </footer>

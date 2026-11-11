@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import AgeGateModal from '../components/AgeGateModal';
 import { videoWebSocketUrl } from '../config/chat';
 import usePageMetadata from '../utils/usePageMetadata';
 import './VideoChatPage.css';
@@ -39,6 +40,13 @@ export default function VideoChatPage() {
   );
 
   const [phase, setPhase] = useState('intro');
+  const [ageVerified, setAgeVerified] = useState(() => {
+    try {
+      return sessionStorage.getItem('gt-age-gate-status') === 'verified';
+    } catch {
+      return false;
+    }
+  });
   const [status, setStatus] = useState('Ready when you are');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -553,218 +561,222 @@ export default function VideoChatPage() {
   const showCall = !['intro', 'error'].includes(phase);
 
   return (
-    <main className="video-page">
-      <Link to="/" className="back-link">
-        ← Back to rooms
-      </Link>
+    <>
+      {!ageVerified && <AgeGateModal onVerified={() => setAgeVerified(true)} />}
+      <main className="video-page">
+        <Link to="/" className="back-link">
+          ← Back to rooms
+        </Link>
 
-      <div className="video-heading">
-        <div className="eyebrow">LIVE · ONE TO ONE</div>
-        <h1>Random Video Chat</h1>
-        <p>Meet one stranger at a time. Your camera and microphone start only when you choose.</p>
-      </div>
-
-      {error && (
-        <div className="video-notice error" role="alert">
-          {error}
+        <div className="video-heading">
+          <div className="eyebrow">LIVE · ONE TO ONE</div>
+          <h1>Random Video Chat</h1>
+          <p>Meet one stranger at a time. Your camera and microphone start only when you choose.</p>
         </div>
-      )}
-      {notice && (
-        <div className="video-notice" role="status">
-          {notice}
-        </div>
-      )}
 
-      {phase === 'intro' && (
-        <section className="video-safety-card">
-          <div className="video-safety-icon" aria-hidden="true">
-            ✦
+        {error && (
+          <div className="video-notice error" role="alert">
+            {error}
           </div>
-          <h2>Before you connect</h2>
-          <p>You’ll meet a random stranger. GlobalTalk does not verify age or identity.</p>
-          <ul>
-            <li>
-              You must be 18 years or older, or have parental/guardian guidance, to participate.
-            </li>
-            <li>
-              Nudity, sexual solicitation, harassment, and illegal acts are strictly prohibited.
-            </li>
-            <li>Do not share passwords, OTPs, bank details, addresses, or private documents.</li>
-            <li>
-              Leave or block anyone who makes you uncomfortable. You can report an abusive peer.
-            </li>
-            <li>Another person may record their screen with separate software.</li>
-            <li>Your camera and microphone will be requested only after you press Start.</li>
-          </ul>
-          <button className="button primary video-start" onClick={() => void begin()}>
-            Start Random Video <span>↗</span>
-          </button>
-          <p className="video-privacy-note">
-            Calls are not recorded by GlobalTalk. Always be respectful and follow our Community
-            Guidelines.
-          </p>
-        </section>
-      )}
-
-      {showCall && (
-        <section className="video-call-card" aria-label="Random video call">
-          <div className="video-call-status" role="status" aria-live="polite">
-            <span className={`status-dot ${phase === 'connected' ? 'connected' : ''}`} />
-            <strong>{status}</strong>
+        )}
+        {notice && (
+          <div className="video-notice" role="status">
+            {notice}
           </div>
+        )}
 
-          <div className="video-stage">
-            <div className="remote-video-wrap">
-              <video
-                ref={remoteVideoRef}
-                autoPlay
-                playsInline
-                aria-label="Stranger video"
-                className={remoteStream ? 'video-visible' : ''}
-                onClick={() => {
-                  if (remoteVideoRef.current) {
-                    void remoteVideoRef.current.play().catch(() => {});
-                  }
-                }}
-              />
-              {!remoteStream && (
-                <div className="video-placeholder">
-                  <span aria-hidden="true">🌐</span>
-                  <b>{phase === 'searching' ? 'Finding a stranger…' : status}</b>
-                  <small>Your call is not recorded by GlobalTalk</small>
-                </div>
-              )}
-              <div className="video-label">Stranger</div>
+        {phase === 'intro' && (
+          <section className="video-safety-card">
+            <div className="video-safety-icon" aria-hidden="true">
+              ✦
             </div>
-
-            <div className="local-video-wrap">
-              <video
-                ref={localVideoRef}
-                autoPlay
-                muted
-                playsInline
-                aria-label="Your camera preview"
-                className={localStream && cameraOn ? 'video-visible' : ''}
-              />
-              {(!localStream || !cameraOn) && (
-                <div className="local-video-placeholder">
-                  {cameraOn ? 'Camera starting…' : 'Camera off'}
-                </div>
-              )}
-              <div className="video-label">You</div>
-            </div>
-          </div>
-
-          <div className="video-controls" aria-label="Call controls">
-            <button className="video-control" onClick={toggleMicrophone} disabled={!localStream}>
-              <span aria-hidden="true">{microphoneOn ? '🎤' : '🔇'}</span>
-              {microphoneOn ? 'Mute' : 'Unmute'}
+            <h2>Before you connect</h2>
+            <p>You’ll meet a random stranger. GlobalTalk does not verify age or identity.</p>
+            <ul>
+              <li>
+                You must be 18 years or older, or have parental/guardian guidance, to participate.
+              </li>
+              <li>
+                Nudity, sexual solicitation, harassment, and illegal acts are strictly prohibited.
+              </li>
+              <li>Do not share passwords, OTPs, bank details, addresses, or private documents.</li>
+              <li>
+                Leave or block anyone who makes you uncomfortable. You can report an abusive peer.
+              </li>
+              <li>Another person may record their screen with separate software.</li>
+              <li>Your camera and microphone will be requested only after you press Start.</li>
+            </ul>
+            <button className="button primary video-start" onClick={() => void begin()}>
+              Start Random Video <span>↗</span>
             </button>
-            <button className="video-control" onClick={toggleCamera} disabled={!localStream}>
-              <span aria-hidden="true">{cameraOn ? '📹' : '🚫'}</span>
-              {cameraOn ? 'Camera off' : 'Camera on'}
-            </button>
-            <button
-              className="video-control next-control"
-              onClick={() => void findNext()}
-              disabled={
-                phase === 'starting' ||
-                (['searching', 'connecting'].includes(phase) && socketRef.current?.readyState !== 1)
-              }
-            >
-              <span aria-hidden="true">⏭️</span> Next
-            </button>
-            <button className="video-control end-control" onClick={endCall}>
-              <span aria-hidden="true">📞</span> End call
-            </button>
-            <button
-              className="video-control"
-              onClick={() => setReportOpen((open) => !open)}
-              disabled={phase !== 'connected'}
-            >
-              <span aria-hidden="true">🚩</span> Report
-            </button>
-            <button
-              className="video-control block-control"
-              onClick={blockPeer}
-              disabled={phase !== 'connected'}
-            >
-              <span aria-hidden="true">🚫</span> Block
-            </button>
-          </div>
-
-          {reportOpen && (
-            <form
-              className="video-report-form"
-              onSubmit={(event) => {
-                event.preventDefault();
-                reportPeer();
-              }}
-            >
-              <label>
-                Report reason
-                <select
-                  value={reportReason}
-                  onChange={(event) => setReportReason(event.target.value)}
-                >
-                  {reportReasons.map((reason) => (
-                    <option key={reason}>{reason}</option>
-                  ))}
-                </select>
-              </label>
-              <button className="video-control" type="submit">
-                Send report
-              </button>
-            </form>
-          )}
-
-          <p className="video-call-footnote">
-            Video is peer media; the Worker handles matchmaking and signaling only. Reports are
-            logged but are not actively reviewed.
-          </p>
-        </section>
-      )}
-
-      {phase === 'error' && (
-        <button className="button primary video-start video-retry" onClick={() => void begin()}>
-          Try again <span>↻</span>
-        </button>
-      )}
-
-      {showUnavailableModal && (
-        <div
-          className="video-modal-overlay"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="video-modal-title"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowUnavailableModal(false);
-            }
-          }}
-        >
-          <div className="video-modal-card">
-            <div className="video-modal-icon" aria-hidden="true">
-              📹
-            </div>
-            <h2 id="video-modal-title" className="video-modal-title">
-              Video Chat Unavailable
-            </h2>
-            <p className="video-modal-text">
-              Video chat is temporarily unavailable. Please try again later.
+            <p className="video-privacy-note">
+              Calls are not recorded by GlobalTalk. Always be respectful and follow our Community
+              Guidelines.
             </p>
-            <div className="video-modal-actions">
+          </section>
+        )}
+
+        {showCall && (
+          <section className="video-call-card" aria-label="Random video call">
+            <div className="video-call-status" role="status" aria-live="polite">
+              <span className={`status-dot ${phase === 'connected' ? 'connected' : ''}`} />
+              <strong>{status}</strong>
+            </div>
+
+            <div className="video-stage">
+              <div className="remote-video-wrap">
+                <video
+                  ref={remoteVideoRef}
+                  autoPlay
+                  playsInline
+                  aria-label="Stranger video"
+                  className={remoteStream ? 'video-visible' : ''}
+                  onClick={() => {
+                    if (remoteVideoRef.current) {
+                      void remoteVideoRef.current.play().catch(() => {});
+                    }
+                  }}
+                />
+                {!remoteStream && (
+                  <div className="video-placeholder">
+                    <span aria-hidden="true">🌐</span>
+                    <b>{phase === 'searching' ? 'Finding a stranger…' : status}</b>
+                    <small>Your call is not recorded by GlobalTalk</small>
+                  </div>
+                )}
+                <div className="video-label">Stranger</div>
+              </div>
+
+              <div className="local-video-wrap">
+                <video
+                  ref={localVideoRef}
+                  autoPlay
+                  muted
+                  playsInline
+                  aria-label="Your camera preview"
+                  className={localStream && cameraOn ? 'video-visible' : ''}
+                />
+                {(!localStream || !cameraOn) && (
+                  <div className="local-video-placeholder">
+                    {cameraOn ? 'Camera starting…' : 'Camera off'}
+                  </div>
+                )}
+                <div className="video-label">You</div>
+              </div>
+            </div>
+
+            <div className="video-controls" aria-label="Call controls">
+              <button className="video-control" onClick={toggleMicrophone} disabled={!localStream}>
+                <span aria-hidden="true">{microphoneOn ? '🎤' : '🔇'}</span>
+                {microphoneOn ? 'Mute' : 'Unmute'}
+              </button>
+              <button className="video-control" onClick={toggleCamera} disabled={!localStream}>
+                <span aria-hidden="true">{cameraOn ? '📹' : '🚫'}</span>
+                {cameraOn ? 'Camera off' : 'Camera on'}
+              </button>
               <button
-                type="button"
-                className="button primary video-modal-button"
-                onClick={() => setShowUnavailableModal(false)}
+                className="video-control next-control"
+                onClick={() => void findNext()}
+                disabled={
+                  phase === 'starting' ||
+                  (['searching', 'connecting'].includes(phase) &&
+                    socketRef.current?.readyState !== 1)
+                }
               >
-                OK
+                <span aria-hidden="true">⏭️</span> Next
+              </button>
+              <button className="video-control end-control" onClick={endCall}>
+                <span aria-hidden="true">📞</span> End call
+              </button>
+              <button
+                className="video-control"
+                onClick={() => setReportOpen((open) => !open)}
+                disabled={phase !== 'connected'}
+              >
+                <span aria-hidden="true">🚩</span> Report
+              </button>
+              <button
+                className="video-control block-control"
+                onClick={blockPeer}
+                disabled={phase !== 'connected'}
+              >
+                <span aria-hidden="true">🚫</span> Block
               </button>
             </div>
+
+            {reportOpen && (
+              <form
+                className="video-report-form"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  reportPeer();
+                }}
+              >
+                <label>
+                  Report reason
+                  <select
+                    value={reportReason}
+                    onChange={(event) => setReportReason(event.target.value)}
+                  >
+                    {reportReasons.map((reason) => (
+                      <option key={reason}>{reason}</option>
+                    ))}
+                  </select>
+                </label>
+                <button className="video-control" type="submit">
+                  Send report
+                </button>
+              </form>
+            )}
+
+            <p className="video-call-footnote">
+              Video is peer media; the Worker handles matchmaking and signaling only. Reports are
+              logged but are not actively reviewed.
+            </p>
+          </section>
+        )}
+
+        {phase === 'error' && (
+          <button className="button primary video-start video-retry" onClick={() => void begin()}>
+            Try again <span>↻</span>
+          </button>
+        )}
+
+        {showUnavailableModal && (
+          <div
+            className="video-modal-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="video-modal-title"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowUnavailableModal(false);
+              }
+            }}
+          >
+            <div className="video-modal-card">
+              <div className="video-modal-icon" aria-hidden="true">
+                📹
+              </div>
+              <h2 id="video-modal-title" className="video-modal-title">
+                Video Chat Unavailable
+              </h2>
+              <p className="video-modal-text">
+                Video chat is temporarily unavailable. Please try again later.
+              </p>
+              <div className="video-modal-actions">
+                <button
+                  type="button"
+                  className="button primary video-modal-button"
+                  onClick={() => setShowUnavailableModal(false)}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
-    </main>
+        )}
+      </main>
+    </>
   );
 }

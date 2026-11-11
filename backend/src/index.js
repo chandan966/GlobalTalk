@@ -24,6 +24,7 @@ const MAX_VIDEO_CONTROLS_PER_WINDOW = 60;
 const MAX_CONNECTIONS_PER_IP = 6;
 const GLOBAL_IP_WINDOW_MS = 60_000;
 const MAX_GLOBAL_CONNECTS_PER_WINDOW = 15;
+const RETENTION_180_DAYS_MS = 180 * 24 * 60 * 60 * 1000; // CERT-In Directions 2022 compliant log retention
 const RESERVED_USERNAMES =
   /^(admin|administrator|moderator|mod|globaltalk|support|helpdesk|police|cybercell|system|official|staff|root|founder)$/i;
 
@@ -162,6 +163,36 @@ export default {
             body: JSON.stringify({ action: 'reports' }),
           });
           return await roomObj.fetch(internalReq);
+        }
+
+        if (action === 'security_logs') {
+          if (!room || !VALID_ROOMS.has(room)) {
+            return secureResponse(
+              JSON.stringify({ error: 'Invalid room' }),
+              400,
+              { 'Content-Type': 'application/json' },
+              url.protocol === 'https:',
+            );
+          }
+          const roomId = env.CHAT_ROOM.idFromName(room);
+          const roomObj = env.CHAT_ROOM.get(roomId);
+          const internalReq = new Request('http://internal/admin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'security_logs' }),
+          });
+          return await roomObj.fetch(internalReq);
+        }
+
+        if (action === 'video_reports') {
+          const id = env.VIDEO_MATCHMAKER.idFromName('global-video-queue');
+          const videoObj = env.VIDEO_MATCHMAKER.get(id);
+          const internalReq = new Request('http://internal/admin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'video_reports' }),
+          });
+          return await videoObj.fetch(internalReq);
         }
 
         if (action === 'status') {
@@ -370,6 +401,30 @@ export class ChatRoom {
             { 'Content-Type': 'application/json' },
             false,
           );
+        }
+
+        if (adminData.action === 'security_logs') {
+          try {
+            const list = await this.state.storage.list({ prefix: 'sec_log:', limit: 100 });
+            const logs = Array.from(list.values());
+            return secureResponse(
+              JSON.stringify({
+                room: this.state.id.toString(),
+                count: logs.length,
+                logs,
+              }),
+              200,
+              { 'Content-Type': 'application/json' },
+              false,
+            );
+          } catch {
+            return secureResponse(
+              JSON.stringify({ error: 'Failed to retrieve security logs' }),
+              500,
+              { 'Content-Type': 'application/json' },
+              false,
+            );
+          }
         }
 
         return secureResponse(
@@ -650,6 +705,9 @@ export class ChatRoom {
     if (this.recentReports.length > 50) this.recentReports.shift();
     try {
       void this.state.storage.put('recent_reports', this.recentReports);
+      const logKey = `sec_log:${now}_${abuseSnapshot.reportId.slice(0, 8)}`;
+      void this.state.storage.put(logKey, abuseSnapshot);
+      void this.pruneExpiredSecurityLogs();
     } catch {
       // Storage fallback
     }
@@ -657,8 +715,27 @@ export class ChatRoom {
     safeSend(socket, {
       type: 'report_result',
       messageId,
-      message: 'Report received. Our moderation team has recorded this incident.',
+      message:
+        'Report received. Incident recorded in diagnostic security logs for administrative review.',
     });
+  }
+
+  async pruneExpiredSecurityLogs() {
+    try {
+      const cutoff = Date.now() - RETENTION_180_DAYS_MS;
+      const list = await this.state.storage.list({ prefix: 'sec_log:', limit: 50 });
+      const expiredKeys = [];
+      for (const [key, val] of list) {
+        if (val && typeof val.timestamp === 'number' && val.timestamp < cutoff) {
+          expiredKeys.push(key);
+        }
+      }
+      if (expiredKeys.length > 0) {
+        await this.state.storage.delete(expiredKeys);
+      }
+    } catch {
+      // Background prune failure handled silently
+    }
   }
 
   rejectInvalidMessage(socket, socketData, message) {
@@ -724,6 +801,37 @@ export class VideoMatchmaker {
 
   async fetch(request) {
     const url = new URL(request.url);
+
+    // Handle internal authenticated admin moderation dispatch for video matchmaker
+    if (url.pathname === '/admin' && request.method === 'POST') {
+      try {
+        const adminData = await request.json();
+        if (adminData.action === 'video_reports') {
+          const list = await this.state.storage.list({ prefix: 'vid_rep:', limit: 100 });
+          const reports = Array.from(list.values());
+          return secureResponse(
+            JSON.stringify({ status: 'ok', count: reports.length, reports }),
+            200,
+            { 'Content-Type': 'application/json' },
+            false,
+          );
+        }
+        return secureResponse(
+          JSON.stringify({ error: 'Unknown video admin action' }),
+          400,
+          { 'Content-Type': 'application/json' },
+          false,
+        );
+      } catch {
+        return secureResponse(
+          JSON.stringify({ error: 'Video admin error' }),
+          500,
+          { 'Content-Type': 'application/json' },
+          false,
+        );
+      }
+    }
+
     if (
       request.method !== 'GET' ||
       url.pathname !== '/video' ||
@@ -1048,18 +1156,29 @@ export class VideoMatchmaker {
     recentReports.push(now);
     socketData.reportTimes = recentReports;
     this.saveVideoSocketData(socket, socketData);
-    console.log(
-      JSON.stringify({
-        event: 'video_report',
-        reportId: crypto.randomUUID(),
-        targetSessionId: socketData.peerId,
-        reason,
-        time: now,
-      }),
-    );
+
+    const reportId = crypto.randomUUID();
+    const videoReportSnapshot = {
+      event: 'video_report',
+      reportId,
+      reporterSessionId: socketData.sessionId,
+      reporterIp: socketData.ip || '127.0.0.1',
+      targetSessionId: socketData.peerId,
+      reason,
+      timestamp: now,
+    };
+    console.log(JSON.stringify(videoReportSnapshot));
+    try {
+      const logKey = `vid_rep:${now}_${reportId.slice(0, 8)}`;
+      void this.state.storage.put(logKey, videoReportSnapshot);
+    } catch {
+      // Storage fallback
+    }
+
     safeSend(socket, {
       type: 'report_result',
-      message: 'Report received. Our moderation team has recorded this incident.',
+      message:
+        'Report received. Incident recorded in diagnostic security logs for administrative review.',
     });
   }
 

@@ -18,6 +18,7 @@ export const grievanceOfficer = {
   email: import.meta.env.VITE_GRIEVANCE_OFFICER_EMAIL?.trim() || 'contactchandan0101@gmail.com',
   address:
     import.meta.env.VITE_GRIEVANCE_OFFICER_ADDRESS?.trim() ||
-    'Chandan (Resident Grievance Officer), India',
+    '[Physical Office Address in India — Pending Configuration by Platform Owner]',
   country: 'India',
+  hasPhysicalAddress: Boolean(import.meta.env.VITE_GRIEVANCE_OFFICER_ADDRESS?.trim()),
 };

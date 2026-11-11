@@ -1,0 +1,188 @@
+.age-gate-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 8, 20, 0.88);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 9999;
+}
+
+.age-gate-card {
+  max-width: 520px;
+  width: 100%;
+  background: #0d1527;
+  border: 1px solid rgba(123, 141, 255, 0.3);
+  border-radius: 14px;
+  padding: 30px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  color: #f0f4fc;
+}
+
+.age-gate-blocked {
+  text-align: center;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.age-gate-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.age-gate-badge {
+  display: inline-flex;
+  padding: 4px 10px;
+  background: rgba(123, 141, 255, 0.15);
+  border: 1px solid rgba(123, 141, 255, 0.3);
+  border-radius: 20px;
+  font-size: 11px;
+  color: #70d6ff;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
+.age-gate-card h2 {
+  font:
+    700 22px 'Space Grotesk',
+    sans-serif;
+  margin: 0 0 10px;
+  color: #f8fafc;
+}
+
+.age-gate-desc {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #94a3b8;
+  margin-bottom: 20px;
+}
+
+.age-gate-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.age-gate-error {
+  padding: 10px 14px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 6px;
+  color: #fca5a5;
+  font-size: 12px;
+}
+
+.age-gate-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.age-gate-select {
+  padding: 11px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #080d1a;
+  color: #f8fafc;
+  font-size: 14px;
+}
+
+.age-gate-select:focus {
+  outline: none;
+  border-color: #7b8dff;
+}
+
+.age-gate-checkbox-label {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #94a3b8;
+  cursor: pointer;
+}
+
+.age-gate-checkbox {
+  margin-top: 2px;
+  accent-color: #7b8dff;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.age-gate-checkbox-label a {
+  color: #70d6ff;
+  text-decoration: underline;
+}
+
+.age-gate-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.age-gate-submit-btn {
+  flex: 2;
+  text-align: center;
+  cursor: pointer;
+}
+
+.age-gate-underage-btn {
+  flex: 1;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #94a3b8;
+  cursor: pointer;
+}
+
+.age-gate-underage-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.age-gate-privacy-note {
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.5;
+  margin-top: 18px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+  padding-top: 12px;
+}
+
+.child-helpline-box {
+  margin: 18px 0;
+  padding: 12px 16px;
+  background: rgba(14, 165, 233, 0.1);
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  border-radius: 8px;
+  font-size: 13px;
+  color: #7dd3fc;
+}
+
+.child-helpline-box span {
+  display: block;
+  font-size: 11px;
+  color: #94a3b8;
+  margin-bottom: 2px;
+}
+
+.age-gate-home-btn {
+  display: block;
+  width: 100%;
+  text-align: center;
+}
+
+@media (max-width: 560px) {
+  .age-gate-card {
+    padding: 22px 18px;
+  }
+  .age-gate-actions {
+    flex-direction: column;
+  }
+}

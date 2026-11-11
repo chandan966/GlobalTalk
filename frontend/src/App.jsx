@@ -54,6 +54,9 @@ export default function App() {
         <Route path="/privacy" element={<InfoPage page="privacy" />} />
         <Route path="/terms" element={<InfoPage page="terms" />} />
         <Route path="/guidelines" element={<InfoPage page="guidelines" />} />
+        <Route path="/cookies" element={<InfoPage page="cookies" />} />
+        <Route path="/copyright" element={<InfoPage page="copyright" />} />
+        <Route path="/grievance" element={<InfoPage page="grievance" />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
