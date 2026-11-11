@@ -7,7 +7,9 @@ export default function Footer() {
       <Link to="/" className="brand">
         <span className="brand-mark">G</span>GlobalTalk
       </Link>
-      <span className="footer-tagline">Open conversations. Respectful connections.</span>
+      <span className="footer-tagline">
+        College Engineering Project · Built for Fun &amp; Learning
+      </span>
       <nav className="footer-links" aria-label="Footer">
         <Link to="/about">About</Link>
         <Link to="/safety">Safety</Link>

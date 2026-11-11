@@ -40,6 +40,20 @@ export default function HomePage() {
           </Link>
           <span className="privacy-note">✦ Anonymous by default</span>
         </div>
+        <div className="college-notice-card" role="note" aria-label="College Project Notice">
+          <div className="college-notice-badge">
+            <span className="notice-icon">🎓</span>
+            <span className="notice-badge-text">
+              College Project · Built for Fun &amp; Learning
+            </span>
+          </div>
+          <p className="college-notice-text">
+            <strong>Friendly Notice:</strong> GlobalTalk is an experimental student engineering
+            project developed for fun, educational experimentation, and real-time community
+            discovery. Please take it in the spirit of lighthearted fun, be respectful to others,
+            and enjoy your conversations!
+          </p>
+        </div>
         <div className="hero-orbit orbit-one" />
         <div className="hero-orbit orbit-two" />
         <div className="hero-globe">🌐</div>

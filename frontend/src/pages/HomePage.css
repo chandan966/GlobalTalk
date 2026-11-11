@@ -67,6 +67,43 @@
   color: #9aaac5;
 }
 
+.college-notice-card {
+  margin-top: 32px;
+  max-width: 600px;
+  padding: 16px 20px;
+  background: rgba(16, 26, 44, 0.75);
+  border: 1px solid rgba(130, 148, 255, 0.25);
+  border-left: 4px solid #7b8dff;
+  border-radius: 11px;
+  backdrop-filter: blur(8px);
+  position: relative;
+  z-index: 1;
+}
+
+.college-notice-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font:
+    600 11px 'Space Grotesk',
+    sans-serif;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #70d6ff;
+  margin-bottom: 8px;
+}
+
+.college-notice-text {
+  font-size: 13px !important;
+  line-height: 1.6 !important;
+  color: #b0c4de !important;
+  margin: 0 !important;
+}
+
+.college-notice-text strong {
+  color: #f0f4fc;
+}
+
 .hero-globe {
   position: absolute;
   right: 9%;

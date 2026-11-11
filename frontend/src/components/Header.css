@@ -1,3 +1,25 @@
+.top-notice-bar {
+  background: linear-gradient(90deg, #131d38, #1c2c54, #131d38);
+  border-bottom: 1px solid rgba(123, 141, 255, 0.22);
+  color: #c9d7ee;
+  text-align: center;
+  padding: 8px 16px;
+  font-size: 12px;
+  line-height: 1.4;
+  letter-spacing: 0.2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  position: relative;
+  z-index: 3;
+}
+
+.top-notice-bar strong {
+  color: #70d6ff;
+  font-weight: 600;
+}
+
 .topbar {
   height: 76px;
   padding: 0 max(calc((100% - 1160px) / 2), 5%);
@@ -56,6 +78,11 @@
 }
 
 @media (max-width: 560px) {
+  .top-notice-bar {
+    font-size: 11px;
+    padding: 6px 12px;
+  }
+
   .topbar {
     height: 65px;
     gap: 10px;

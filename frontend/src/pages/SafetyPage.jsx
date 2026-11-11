@@ -52,8 +52,9 @@ export default function SafetyPage() {
         </section>
       ))}
       <p className="notice">
-        GlobalTalk is an MVP. It does not provide emergency support, identity verification, or a
-        staffed moderation team.
+        GlobalTalk is an experimental college student project built for fun and learning. It does
+        not provide emergency support, identity verification, or a staffed moderation team. Please
+        use good judgment and interact respectfully.
       </p>
     </main>
   );

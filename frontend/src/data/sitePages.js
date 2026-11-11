@@ -24,6 +24,13 @@ export const sitePages = {
           'GlobalTalk relies on modern edge computing, utilizing Cloudflare Workers and Durable Objects for WebSocket messaging and WebRTC TURN relays for media. As a growing platform, connections may be subject to capacity limits and maintenance without prior notice.',
         ],
       },
+      {
+        heading: 'Student & College Engineering Project',
+        paragraphs: [
+          'GlobalTalk was developed as a student engineering college project to explore and demonstrate modern real-time web technologies, WebSockets, serverless edge computing, and WebRTC streaming.',
+          'This platform is created for educational exploration, learning, and lighthearted fun. Visitors and participants are encouraged to interact respectfully, enjoy casual conversations, and treat the service in the spirit of fun and community discovery.',
+        ],
+      },
     ],
   },
   privacy: {
