@@ -2,6 +2,88 @@
   font-size: 15px;
 }
 
+.contact-action-card {
+  margin: 28px 0 35px;
+  padding: 24px 28px;
+  background: linear-gradient(145deg, #121e34, #0e1729);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+}
+
+.contact-action-text h2 {
+  margin: 0 0 8px;
+  font: 600 20px 'Space Grotesk';
+  color: #f0f4fc;
+}
+
+.contact-action-text p {
+  margin: 0;
+  color: #9eacc5;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.contact-highlight-email {
+  color: #60a5fa;
+  font-weight: 600;
+}
+
+.contact-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.contact-direct-btn,
+.contact-gmail-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 9px;
+  font: 600 13px 'Space Grotesk';
+  text-decoration: none !important;
+  cursor: pointer;
+}
+
+.contact-direct-btn {
+  background: #3b82f6;
+  color: #ffffff !important;
+}
+
+.contact-direct-btn:hover {
+  background: #2563eb;
+}
+
+.contact-gmail-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e2e8f0 !important;
+}
+
+.contact-gmail-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+@media (max-width: 600px) {
+  .contact-action-card {
+    padding: 20px 18px;
+  }
+  .contact-action-buttons {
+    flex-direction: column;
+  }
+  .contact-direct-btn,
+  .contact-gmail-btn {
+    width: 100%;
+    text-align: center;
+  }
+}
+
 .contact-topics {
   margin-top: 25px;
 }

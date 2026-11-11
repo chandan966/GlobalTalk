@@ -32,9 +32,36 @@ export default function ContactPage() {
       <div className="eyebrow">GET IN TOUCH</div>
       <h1>Contact GlobalTalk</h1>
       <p className="lead">
-        Choose a topic below. Do not include passwords, financial details, or other sensitive
-        information.
+        Have questions, feedback, or need assistance? Reach out directly below. Do not include
+        passwords, financial details, or sensitive personal data.
       </p>
+
+      {/* Prominent Direct Email Contact Banner */}
+      <div className="contact-action-card">
+        <div className="contact-action-text">
+          <h2>Direct Email Support</h2>
+          <p>
+            Tap below to open your email client directly or write to us at{' '}
+            <strong className="contact-highlight-email">{contactEmail}</strong>.
+          </p>
+        </div>
+        <div className="contact-action-buttons">
+          <a
+            href={`mailto:${contactEmail}?subject=GlobalTalk%20Inquiry`}
+            className="button primary contact-direct-btn"
+          >
+            <span>✉️</span> Email Me (Open Mail App)
+          </a>
+          <a
+            href={`https://mail.google.com/mail/?view=cm&fs=1&to=${contactEmail}&su=GlobalTalk%20Inquiry`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="button secondary contact-gmail-btn"
+          >
+            <span>📧</span> Open in Gmail Web
+          </a>
+        </div>
+      </div>
 
       <div className="contact-topics">
         {contactTopics.map(([heading, description]) => (
