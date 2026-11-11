@@ -80,16 +80,14 @@ export default function ContactPage() {
         ))}
       </div>
 
+      {/* Bottom General Email address line (Temporarily disabled - email is prominently featured in top action card) */}
+      {/*
       {contactEmail ? (
         <p className="contact-address">
           General Email: <a href={`mailto:${contactEmail}`}>{contactEmail}</a>
         </p>
-      ) : (
-        <p className="contact-not-configured" role="status">
-          A public contact email has not been configured yet. The site owner must set
-          <code> VITE_CONTACT_EMAIL</code> in the frontend deployment environment before launch.
-        </p>
-      )}
+      ) : null}
+      */}
 
       {/* Statutory Grievance Redressal Mechanism (Temporarily disabled by configuration flag) */}
       {ENABLE_STATUTORY_GRIEVANCE && (
