@@ -42,6 +42,7 @@ export default function VideoChatPage() {
   const [status, setStatus] = useState('Ready when you are');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [showUnavailableModal, setShowUnavailableModal] = useState(false);
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
   const [microphoneOn, setMicrophoneOn] = useState(true);
@@ -123,13 +124,14 @@ export default function VideoChatPage() {
     }
   };
 
-  const finishAfterTransportError = (message) => {
-    setError(message);
-    setStatus('Connection problem');
-    setPhase('error');
+  const finishAfterTransportError = () => {
+    setError('');
+    setStatus('Ready when you are');
+    setPhase('intro');
     clearPeerConnection();
     stopLocalMedia();
     closeSocket(false);
+    setShowUnavailableModal(true);
   };
 
   const finishPeerCall = (message) => {
@@ -145,7 +147,7 @@ export default function VideoChatPage() {
     if (peerRef.current || !localStreamRef.current) return;
 
     if (typeof window.RTCPeerConnection !== 'function') {
-      finishAfterTransportError('This browser does not support WebRTC video calls.');
+      finishAfterTransportError();
       return;
     }
 
@@ -310,11 +312,7 @@ export default function VideoChatPage() {
       setNotice(message.message.slice(0, 200));
       setReportOpen(false);
     } else if (message.type === 'error') {
-      finishAfterTransportError(
-        typeof message.message === 'string'
-          ? message.message.slice(0, 240)
-          : 'Video chat is temporarily unavailable. Please try again.',
-      );
+      finishAfterTransportError();
     }
   };
 
@@ -364,9 +362,7 @@ export default function VideoChatPage() {
 
   const openSignalingSocket = (queueType = 'queue') => {
     if (!videoWebSocketUrl) {
-      finishAfterTransportError(
-        'Video chat is not configured. Set VITE_CHAT_WS_URL to your Cloudflare Worker WebSocket URL.',
-      );
+      finishAfterTransportError();
       return;
     }
 
@@ -388,9 +384,7 @@ export default function VideoChatPage() {
     try {
       socket = new WebSocket(videoWebSocketUrl);
     } catch {
-      finishAfterTransportError(
-        'The video signaling connection could not start. Please try again.',
-      );
+      finishAfterTransportError();
       return;
     }
     socketRef.current = socket;
@@ -403,14 +397,14 @@ export default function VideoChatPage() {
           try {
             socket.send(JSON.stringify({ type: 'ping' }));
           } catch {
-            finishAfterTransportError('Video signaling was interrupted. Please try again.');
+            finishAfterTransportError();
           }
         }
       }, 25_000);
       try {
         socket.send(JSON.stringify({ type: queueType }));
       } catch {
-        finishAfterTransportError('The matchmaking request could not be sent. Please try again.');
+        finishAfterTransportError();
       }
     };
     socket.onmessage = (event) => {
@@ -418,9 +412,7 @@ export default function VideoChatPage() {
     };
     socket.onerror = () => {
       if (socketRef.current === socket && !intentionalCloseRef.current) {
-        finishAfterTransportError(
-          'Video chat is temporarily unavailable. In production, a secure TURN relay must be configured to protect user IP privacy.',
-        );
+        finishAfterTransportError();
       }
     };
     socket.onclose = () => {
@@ -428,9 +420,7 @@ export default function VideoChatPage() {
       socketRef.current = null;
       window.clearInterval(heartbeatRef.current);
       heartbeatRef.current = null;
-      finishAfterTransportError(
-        'Video chat disconnected. Try again when your connection is stable.',
-      );
+      finishAfterTransportError();
     };
   };
 
@@ -610,7 +600,8 @@ export default function VideoChatPage() {
             Start Random Video <span>↗</span>
           </button>
           <p className="video-privacy-note">
-            Calls are not recorded by GlobalTalk. Production calls require a private TURN relay.
+            Calls are not recorded by GlobalTalk. Always be respectful and follow our Community
+            Guidelines.
           </p>
         </section>
       )}
@@ -738,6 +729,41 @@ export default function VideoChatPage() {
         <button className="button primary video-start video-retry" onClick={() => void begin()}>
           Try again <span>↻</span>
         </button>
+      )}
+
+      {showUnavailableModal && (
+        <div
+          className="video-modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="video-modal-title"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowUnavailableModal(false);
+            }
+          }}
+        >
+          <div className="video-modal-card">
+            <div className="video-modal-icon" aria-hidden="true">
+              📹
+            </div>
+            <h2 id="video-modal-title" className="video-modal-title">
+              Video Chat Unavailable
+            </h2>
+            <p className="video-modal-text">
+              Video chat is temporarily unavailable. Please try again later.
+            </p>
+            <div className="video-modal-actions">
+              <button
+                type="button"
+                className="button primary video-modal-button"
+                onClick={() => setShowUnavailableModal(false)}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </main>
   );

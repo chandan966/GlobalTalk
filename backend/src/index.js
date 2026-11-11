@@ -764,7 +764,7 @@ export class VideoMatchmaker {
     const isLocalHost = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
     if (!isLocalHost && !iceConfig) {
       return secureResponse(
-        'Random video is temporarily unavailable because a secure relay is required in production to protect user IP privacy.',
+        'Video chat is temporarily unavailable. Please try again later.',
         503,
         {},
         url.protocol === 'https:',
@@ -851,11 +851,11 @@ export class VideoMatchmaker {
     if (!socketData.iceConfig) {
       safeSend(socket, {
         type: 'error',
-        code: 'TURN_NOT_CONFIGURED',
-        message: 'Random video is not available until a private TURN relay is configured.',
+        code: 'VIDEO_UNAVAILABLE',
+        message: 'Video chat is temporarily unavailable. Please try again later.',
       });
       try {
-        socket.close(1013, 'TURN relay is not configured');
+        socket.close(1013, 'Video chat is temporarily unavailable');
       } catch {
         // The socket may already be closed.
       }
