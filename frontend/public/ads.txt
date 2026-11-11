@@ -1,1 +1,1 @@
-# Add the Google-provided publisher record here after AdSense approval.
+google.com, pub-6527373182140065, DIRECT, f08c47fec0942fa0

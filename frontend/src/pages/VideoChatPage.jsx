@@ -370,6 +370,19 @@ export default function VideoChatPage() {
       return;
     }
 
+    if (socketRef.current) {
+      try {
+        socketRef.current.onopen = null;
+        socketRef.current.onmessage = null;
+        socketRef.current.onerror = null;
+        socketRef.current.onclose = null;
+        socketRef.current.close(1000, 'Reopening socket');
+      } catch {
+        // Discard lingering socket safely
+      }
+      socketRef.current = null;
+    }
+
     intentionalCloseRef.current = false;
     let socket;
     try {
@@ -406,7 +419,7 @@ export default function VideoChatPage() {
     socket.onerror = () => {
       if (socketRef.current === socket && !intentionalCloseRef.current) {
         finishAfterTransportError(
-          'Video signaling is unavailable. Check the connection and try again.',
+          'Video chat is temporarily unavailable. In production, a secure TURN relay must be configured to protect user IP privacy.',
         );
       }
     };
@@ -580,8 +593,16 @@ export default function VideoChatPage() {
           <h2>Before you connect</h2>
           <p>You’ll meet a random stranger. GlobalTalk does not verify age or identity.</p>
           <ul>
+            <li>
+              You must be 18 years or older, or have parental/guardian guidance, to participate.
+            </li>
+            <li>
+              Nudity, sexual solicitation, harassment, and illegal acts are strictly prohibited.
+            </li>
             <li>Do not share passwords, OTPs, bank details, addresses, or private documents.</li>
-            <li>Leave or block anyone who makes you uncomfortable. You can report a call.</li>
+            <li>
+              Leave or block anyone who makes you uncomfortable. You can report an abusive peer.
+            </li>
             <li>Another person may record their screen with separate software.</li>
             <li>Your camera and microphone will be requested only after you press Start.</li>
           </ul>

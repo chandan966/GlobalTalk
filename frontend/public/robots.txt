@@ -1,4 +1,6 @@
 User-agent: *
 Allow: /
+Disallow: /room/
+Disallow: /random-video
 
 Sitemap: https://globaltalk-tau-plum-26.vercel.app/sitemap.xml

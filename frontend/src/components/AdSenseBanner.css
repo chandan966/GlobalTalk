@@ -1,0 +1,17 @@
+.adsense-container {
+  margin: 2.5rem 0 1.5rem 0;
+  padding: 1rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: center;
+  overflow: hidden;
+  min-height: 100px;
+}
+
+.adsense-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #718096;
+  margin-bottom: 0.5rem;
+}

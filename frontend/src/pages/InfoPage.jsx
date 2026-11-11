@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import AdSenseBanner from '../components/AdSenseBanner';
 import { sitePages } from '../data/sitePages';
 import usePageMetadata from '../utils/usePageMetadata';
 import './InfoPage.css';
@@ -23,6 +24,7 @@ export default function InfoPage({ page }) {
           ))}
         </section>
       ))}
+      <AdSenseBanner />
       <p className="info-page-contact">
         Questions? Visit the <Link to="/contact">Contact page</Link>.
       </p>

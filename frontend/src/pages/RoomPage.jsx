@@ -145,6 +145,8 @@ export default function RoomPage() {
             if (history.length > 0) setMessages(history);
           } else if (data.type === 'message' && isChatMessage(data.message)) {
             setMessages((previous) => [...previous, data.message].slice(-150));
+          } else if (data.type === 'delete_message' && typeof data.messageId === 'string') {
+            setMessages((previous) => previous.filter((m) => m.id !== data.messageId));
           } else if (data.type === 'presence' && Number.isInteger(data.count) && data.count >= 0) {
             setOnline(data.count);
           } else if (data.type === 'error' && typeof data.message === 'string') {

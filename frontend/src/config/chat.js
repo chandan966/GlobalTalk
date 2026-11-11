@@ -1,4 +1,5 @@
 const configuredUrl = import.meta.env.VITE_CHAT_WS_URL?.trim().replace(/\/+$/, '');
+const configuredVideoUrl = import.meta.env.VITE_VIDEO_WS_URL?.trim().replace(/\/+$/, '');
 
 export const chatWebSocketUrl =
   configuredUrl ||
@@ -7,6 +8,7 @@ export const chatWebSocketUrl =
     : '');
 
 export const videoWebSocketUrl = (() => {
+  if (configuredVideoUrl) return configuredVideoUrl;
   if (!chatWebSocketUrl) return '';
 
   try {

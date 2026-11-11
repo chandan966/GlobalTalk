@@ -1,4 +1,5 @@
-import { Route, Routes } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Route, Routes, useLocation } from 'react-router-dom';
 import Footer from './components/Footer.jsx';
 import Header from './components/Header.jsx';
 import ContactPage from './pages/ContactPage.jsx';
@@ -11,6 +12,36 @@ import VideoChatPage from './pages/VideoChatPage.jsx';
 import './App.css';
 
 export default function App() {
+  const location = useLocation();
+
+  useEffect(() => {
+    const isChatOrVideo =
+      location.pathname.startsWith('/room/') || location.pathname === '/random-video';
+
+    if (isChatOrVideo) {
+      if (typeof window !== 'undefined' && window.adsbygoogle) {
+        try {
+          window.adsbygoogle.pauseAdRequests = 1;
+        } catch {
+          // Suppress benign runtime error if adsbygoogle is not yet initialized
+        }
+      }
+      try {
+        document.querySelectorAll('.google-auto-placed').forEach((el) => el.remove());
+      } catch {
+        // Suppress DOM query error
+      }
+    } else {
+      if (typeof window !== 'undefined' && window.adsbygoogle) {
+        try {
+          window.adsbygoogle.pauseAdRequests = 0;
+        } catch {
+          // Suppress benign runtime error
+        }
+      }
+    }
+  }, [location.pathname]);
+
   return (
     <div className="app-shell">
       <Header />

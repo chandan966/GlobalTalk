@@ -21,6 +21,48 @@ const MAX_VIDEO_REPORTS_PER_WINDOW = 3;
 const MAX_VIDEO_BLOCKED_PEERS = 128;
 const VIDEO_CONTROL_WINDOW_MS = 60_000;
 const MAX_VIDEO_CONTROLS_PER_WINDOW = 60;
+const MAX_CONNECTIONS_PER_IP = 6;
+const GLOBAL_IP_WINDOW_MS = 60_000;
+const MAX_GLOBAL_CONNECTS_PER_WINDOW = 15;
+const RESERVED_USERNAMES =
+  /^(admin|administrator|moderator|mod|globaltalk|support|helpdesk|police|cybercell|system|official|staff|root|founder)$/i;
+
+const globalIpConnectionTimes = new Map();
+
+function checkGlobalIpRateLimit(ip) {
+  const now = Date.now();
+  const times = globalIpConnectionTimes.get(ip) || [];
+  const recent = times.filter((t) => now - t < GLOBAL_IP_WINDOW_MS);
+  if (recent.length >= MAX_GLOBAL_CONNECTS_PER_WINDOW) {
+    globalIpConnectionTimes.set(ip, recent);
+    return false;
+  }
+  recent.push(now);
+  globalIpConnectionTimes.set(ip, recent);
+  return true;
+}
+
+async function timingSafeEqualString(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const enc = new TextEncoder();
+  const hashA = new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(a)));
+  const hashB = new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(b)));
+  let diff = 0;
+  for (let i = 0; i < 32; i++) {
+    diff |= hashA[i] ^ hashB[i];
+  }
+  return diff === 0 && a.length === b.length;
+}
+
+async function verifyAdminAuth(request, env) {
+  const authHeader = request.headers.get('Authorization') || '';
+  const match = authHeader.match(/^Bearer\s+(.+)$/i);
+  if (!match) return false;
+  const provided = match[1].trim();
+  const secret = typeof env.ADMIN_SECRET === 'string' ? env.ADMIN_SECRET.trim() : '';
+  if (secret.length < 16) return false;
+  return await timingSafeEqualString(provided, secret);
+}
 
 const VIDEO_REPORT_REASONS = new Set([
   'harassment',
@@ -56,6 +98,109 @@ export default {
         JSON.stringify({ status: 'ok', service: 'GlobalTalk API' }),
         200,
         { 'Content-Type': 'application/json; charset=utf-8' },
+        url.protocol === 'https:',
+      );
+    }
+
+    if (url.pathname === '/api/admin/moderate') {
+      if (request.method !== 'POST') {
+        return secureResponse(
+          'Method not allowed',
+          405,
+          { Allow: 'POST' },
+          url.protocol === 'https:',
+        );
+      }
+
+      const isAuthed = await verifyAdminAuth(request, env);
+      if (!isAuthed) {
+        return secureResponse(
+          JSON.stringify({ error: 'Unauthorized: invalid or missing admin token' }),
+          401,
+          { 'Content-Type': 'application/json' },
+          url.protocol === 'https:',
+        );
+      }
+
+      try {
+        const body = await request.json();
+        const { action, room, messageId } = body || {};
+
+        if (action === 'delete') {
+          if (!room || !VALID_ROOMS.has(room) || typeof messageId !== 'string') {
+            return secureResponse(
+              JSON.stringify({ error: 'Invalid room or messageId' }),
+              400,
+              { 'Content-Type': 'application/json' },
+              url.protocol === 'https:',
+            );
+          }
+          const roomId = env.CHAT_ROOM.idFromName(room);
+          const roomObj = env.CHAT_ROOM.get(roomId);
+          const internalReq = new Request('http://internal/admin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'delete', messageId }),
+          });
+          return await roomObj.fetch(internalReq);
+        }
+
+        if (action === 'reports') {
+          if (!room || !VALID_ROOMS.has(room)) {
+            return secureResponse(
+              JSON.stringify({ error: 'Invalid room' }),
+              400,
+              { 'Content-Type': 'application/json' },
+              url.protocol === 'https:',
+            );
+          }
+          const roomId = env.CHAT_ROOM.idFromName(room);
+          const roomObj = env.CHAT_ROOM.get(roomId);
+          const internalReq = new Request('http://internal/admin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'reports' }),
+          });
+          return await roomObj.fetch(internalReq);
+        }
+
+        if (action === 'status') {
+          return secureResponse(
+            JSON.stringify({
+              service: 'GlobalTalk',
+              timestamp: Date.now(),
+              rooms: Array.from(VALID_ROOMS),
+            }),
+            200,
+            { 'Content-Type': 'application/json' },
+            url.protocol === 'https:',
+          );
+        }
+
+        return secureResponse(
+          JSON.stringify({ error: 'Unknown admin action' }),
+          400,
+          { 'Content-Type': 'application/json' },
+          url.protocol === 'https:',
+        );
+      } catch {
+        return secureResponse(
+          JSON.stringify({ error: 'Malformed request payload' }),
+          400,
+          { 'Content-Type': 'application/json' },
+          url.protocol === 'https:',
+        );
+      }
+    }
+
+    const clientIp = request.headers.get('CF-Connecting-IP') || '127.0.0.1';
+    const isWsUpgrade = request.headers.get('Upgrade')?.toLowerCase() === 'websocket';
+
+    if (isWsUpgrade && !checkGlobalIpRateLimit(clientIp)) {
+      return secureResponse(
+        'Too many connection attempts. Please slow down and try again shortly.',
+        429,
+        { 'Retry-After': '60' },
         url.protocol === 'https:',
       );
     }
@@ -159,10 +304,90 @@ export class ChatRoom {
     this.state = state;
     this.env = env;
     this.roomMessageTimes = [];
+    this.socketsByIp = new Map();
+    this.recentMessages = [];
+    this.recentReports = [];
     this.state.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'));
   }
 
   async fetch(request) {
+    const requestUrl = new URL(request.url);
+
+    // Handle internal authenticated admin moderation dispatch
+    if (requestUrl.pathname === '/admin' && request.method === 'POST') {
+      try {
+        const adminData = await request.json();
+        if (adminData.action === 'delete' && typeof adminData.messageId === 'string') {
+          const targetId = adminData.messageId;
+          this.recentMessages = (this.recentMessages || []).filter((m) => m.id !== targetId);
+          this.deletedMessageIds = this.deletedMessageIds || new Set();
+          this.deletedMessageIds.add(targetId);
+          try {
+            await this.state.storage.put(
+              'deleted_message_ids',
+              Array.from(this.deletedMessageIds).slice(-200),
+            );
+          } catch {
+            // Storage fallback
+          }
+          this.broadcast({ type: 'delete_message', messageId: targetId });
+          console.log(
+            JSON.stringify({
+              event: 'admin_message_deleted',
+              messageId: targetId,
+              room: this.state.id.toString(),
+              timestamp: Date.now(),
+            }),
+          );
+          return secureResponse(
+            JSON.stringify({ status: 'ok', deleted: targetId }),
+            200,
+            { 'Content-Type': 'application/json' },
+            false,
+          );
+        }
+
+        if (adminData.action === 'reports') {
+          let reports = this.recentReports || [];
+          try {
+            const stored = await this.state.storage.get('recent_reports');
+            if (Array.isArray(stored)) {
+              reports = stored;
+              this.recentReports = stored;
+            }
+          } catch {
+            // Storage fallback
+          }
+          const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+          const filtered = reports.filter((r) => r.timestamp > thirtyDaysAgo);
+          return secureResponse(
+            JSON.stringify({
+              room: this.state.id.toString(),
+              count: filtered.length,
+              reports: filtered,
+            }),
+            200,
+            { 'Content-Type': 'application/json' },
+            false,
+          );
+        }
+
+        return secureResponse(
+          JSON.stringify({ error: 'Unknown internal admin action' }),
+          400,
+          { 'Content-Type': 'application/json' },
+          false,
+        );
+      } catch {
+        return secureResponse(
+          JSON.stringify({ error: 'Internal admin error' }),
+          500,
+          { 'Content-Type': 'application/json' },
+          false,
+        );
+      }
+    }
+
     if (
       request.method !== 'GET' ||
       request.headers.get('Upgrade')?.toLowerCase() !== 'websocket' ||
@@ -172,6 +397,17 @@ export class ChatRoom {
         'Invalid WebSocket request',
         400,
         {},
+        new URL(request.url).protocol === 'https:',
+      );
+    }
+
+    const clientIp = request.headers.get('CF-Connecting-IP') || '127.0.0.1';
+    const activeForIp = this.socketsByIp.get(clientIp) || 0;
+    if (activeForIp >= MAX_CONNECTIONS_PER_IP) {
+      return secureResponse(
+        `Too many connections from this network. Maximum ${MAX_CONNECTIONS_PER_IP} connections per IP are permitted.`,
+        429,
+        { 'Retry-After': '30' },
         new URL(request.url).protocol === 'https:',
       );
     }
@@ -189,8 +425,9 @@ export class ChatRoom {
     const client = pair[0];
     const server = pair[1];
 
+    this.socketsByIp.set(clientIp, activeForIp + 1);
     this.state.acceptWebSocket(server);
-    server.serializeAttachment(createSocketData());
+    server.serializeAttachment({ ...createSocketData(), ip: clientIp });
     safeSend(server, { type: 'history', messages: [] });
     this.presence();
 
@@ -229,7 +466,13 @@ export class ChatRoom {
         return;
       }
 
-      socketData.name = cleanText(data.name, 24) || 'Guest';
+      let rawName = cleanText(data.name, 24);
+      const normalizedName = rawName.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (!rawName || RESERVED_USERNAMES.test(normalizedName)) {
+        rawName = 'Guest#' + Math.floor(1000 + Math.random() * 9000);
+      }
+
+      socketData.name = rawName;
       socketData.country = cleanText(data.country, 40);
       socketData.joined = true;
       socket.serializeAttachment(socketData);
@@ -278,6 +521,21 @@ export class ChatRoom {
     }
 
     const now = Date.now();
+    const normalizedText = text.toLowerCase().trim();
+
+    // Prevent identical message spam from the same connection
+    if (
+      socketData.lastMessageText &&
+      socketData.lastMessageText === normalizedText &&
+      now - socketData.lastMessageAt < 10000
+    ) {
+      safeSend(socket, {
+        type: 'error',
+        message: 'Please do not repeat the exact same message.',
+      });
+      return;
+    }
+
     const recentMessages = socketData.messageTimes.filter((time) => now - time < MESSAGE_WINDOW_MS);
 
     if (now - socketData.lastMessageAt < MESSAGE_COOLDOWN_MS) {
@@ -315,18 +573,27 @@ export class ChatRoom {
     roomMessages.push(now);
     socketData.messageTimes = recentMessages;
     socketData.lastMessageAt = now;
+    socketData.lastMessageText = normalizedText;
     this.roomMessageTimes = roomMessages;
     socket.serializeAttachment(socketData);
 
+    const messageId = crypto.randomUUID();
+    const messagePayload = {
+      id: messageId,
+      name: socketData.name,
+      country: socketData.country,
+      text,
+      time: now,
+    };
+
+    // Keep recent messages in memory buffer for moderation and reporting verification
+    this.recentMessages = this.recentMessages || [];
+    this.recentMessages.push({ ...messagePayload, ip: socketData.ip || '127.0.0.1' });
+    if (this.recentMessages.length > 50) this.recentMessages.shift();
+
     this.broadcast({
       type: 'message',
-      message: {
-        id: crypto.randomUUID(),
-        name: socketData.name,
-        country: socketData.country,
-        text,
-        time: now,
-      },
+      message: messagePayload,
     });
   }
 
@@ -361,19 +628,36 @@ export class ChatRoom {
     socketData.reportTimes = recentReports;
     socket.serializeAttachment(socketData);
 
-    console.log(
-      JSON.stringify({
-        event: 'message_report',
-        messageId,
-        room: this.state.id.toString(),
-        reporter: socketData.name,
-        time: now,
-      }),
-    );
+    // Locate reported message in memory buffer to record meaningful abuse evidence
+    const foundMsg = (this.recentMessages || []).find((m) => m.id === messageId);
+    const abuseSnapshot = {
+      event: 'abuse_report_recorded',
+      reportId: crypto.randomUUID(),
+      messageId,
+      room: this.state.id.toString(),
+      reportedText: foundMsg ? foundMsg.text : '[Message no longer in recent buffer]',
+      reportedSender: foundMsg ? foundMsg.name : 'Unknown',
+      reportedIp: foundMsg ? foundMsg.ip : 'Unknown',
+      reporterName: socketData.name,
+      reporterIp: socketData.ip || '127.0.0.1',
+      timestamp: now,
+    };
+
+    console.log(JSON.stringify(abuseSnapshot));
+
+    this.recentReports = this.recentReports || [];
+    this.recentReports.push(abuseSnapshot);
+    if (this.recentReports.length > 50) this.recentReports.shift();
+    try {
+      void this.state.storage.put('recent_reports', this.recentReports);
+    } catch {
+      // Storage fallback
+    }
+
     safeSend(socket, {
       type: 'report_result',
       messageId,
-      message: 'Report received. Reports are not actively reviewed in this starter version.',
+      message: 'Report received. Our moderation team has recorded this incident.',
     });
   }
 
@@ -391,11 +675,23 @@ export class ChatRoom {
     }
   }
 
-  webSocketClose() {
+  webSocketClose(socket) {
+    const socketData = readSocketData(socket);
+    if (socketData.ip && this.socketsByIp) {
+      const cur = this.socketsByIp.get(socketData.ip) || 1;
+      if (cur <= 1) this.socketsByIp.delete(socketData.ip);
+      else this.socketsByIp.set(socketData.ip, cur - 1);
+    }
     this.presence();
   }
 
-  webSocketError() {
+  webSocketError(socket) {
+    const socketData = readSocketData(socket);
+    if (socketData.ip && this.socketsByIp) {
+      const cur = this.socketsByIp.get(socketData.ip) || 1;
+      if (cur <= 1) this.socketsByIp.delete(socketData.ip);
+      else this.socketsByIp.set(socketData.ip, cur - 1);
+    }
     this.presence();
   }
 
@@ -423,6 +719,7 @@ export class VideoMatchmaker {
   constructor(state, env) {
     this.state = state;
     this.env = env;
+    this.socketsByIp = new Map();
   }
 
   async fetch(request) {
@@ -434,6 +731,17 @@ export class VideoMatchmaker {
       !isAllowedOrigin(request, this.env)
     ) {
       return secureResponse('Invalid video WebSocket request', 400, {}, url.protocol === 'https:');
+    }
+
+    const clientIp = request.headers.get('CF-Connecting-IP') || '127.0.0.1';
+    const activeForIp = this.socketsByIp.get(clientIp) || 0;
+    if (activeForIp >= MAX_CONNECTIONS_PER_IP) {
+      return secureResponse(
+        `Too many video connections from this network. Maximum ${MAX_CONNECTIONS_PER_IP} connections per IP are permitted.`,
+        429,
+        { 'Retry-After': '30' },
+        url.protocol === 'https:',
+      );
     }
 
     if (this.state.getWebSockets().length >= MAX_VIDEO_CONNECTIONS) {
@@ -453,11 +761,22 @@ export class VideoMatchmaker {
       console.error(JSON.stringify({ event: 'video_ice_config_unavailable' }));
     }
 
+    const isLocalHost = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+    if (!isLocalHost && !iceConfig) {
+      return secureResponse(
+        'Random video is temporarily unavailable because a secure relay is required in production to protect user IP privacy.',
+        503,
+        {},
+        url.protocol === 'https:',
+      );
+    }
+
     const pair = new WebSocketPair();
     const client = pair[0];
     const server = pair[1];
+    this.socketsByIp.set(clientIp, activeForIp + 1);
     this.state.acceptWebSocket(server);
-    server.serializeAttachment(createVideoSocketData(iceConfig, sessionId));
+    server.serializeAttachment({ ...createVideoSocketData(iceConfig, sessionId), ip: clientIp });
 
     return new Response(null, { status: 101, webSocket: client });
   }
@@ -637,14 +956,14 @@ export class VideoMatchmaker {
       const firstSent = safeSend(first.socket, {
         type: 'matched',
         initiator: firstData.initiator,
-        iceServers: firstData.iceConfig.iceServers,
-        iceTransportPolicy: firstData.iceConfig.iceTransportPolicy,
+        iceServers: firstData.iceConfig?.iceServers || [],
+        iceTransportPolicy: firstData.iceConfig?.iceTransportPolicy || 'relay',
       });
       const secondSent = safeSend(second.socket, {
         type: 'matched',
         initiator: secondData.initiator,
-        iceServers: secondData.iceConfig.iceServers,
-        iceTransportPolicy: secondData.iceConfig.iceTransportPolicy,
+        iceServers: secondData.iceConfig?.iceServers || [],
+        iceTransportPolicy: secondData.iceConfig?.iceTransportPolicy || 'relay',
       });
 
       if (!firstSent) this.closeVideoSocket(first.socket, 'Unable to start the call');
@@ -740,7 +1059,7 @@ export class VideoMatchmaker {
     );
     safeSend(socket, {
       type: 'report_result',
-      message: 'Report received. Reports are not actively reviewed in this service.',
+      message: 'Report received. Our moderation team has recorded this incident.',
     });
   }
 
@@ -803,11 +1122,21 @@ export class VideoMatchmaker {
 
   webSocketClose(socket) {
     const socketData = readVideoSocketData(socket);
+    if (socketData.ip && this.socketsByIp) {
+      const cur = this.socketsByIp.get(socketData.ip) || 1;
+      if (cur <= 1) this.socketsByIp.delete(socketData.ip);
+      else this.socketsByIp.set(socketData.ip, cur - 1);
+    }
     this.releasePeer(socket, socketData, true);
   }
 
   webSocketError(socket) {
     const socketData = readVideoSocketData(socket);
+    if (socketData.ip && this.socketsByIp) {
+      const cur = this.socketsByIp.get(socketData.ip) || 1;
+      if (cur <= 1) this.socketsByIp.delete(socketData.ip);
+      else this.socketsByIp.set(socketData.ip, cur - 1);
+    }
     this.releasePeer(socket, socketData, true);
   }
 }
@@ -843,6 +1172,8 @@ function createSocketData() {
     name: 'Guest',
     country: '',
     joined: false,
+    ip: '127.0.0.1',
+    lastMessageText: '',
     messageTimes: [],
     lastMessageAt: 0,
     reportTimes: [],
@@ -862,6 +1193,8 @@ function readSocketData(socket) {
       return {
         ...createSocketData(),
         ...data,
+        ip: typeof data.ip === 'string' ? data.ip : '127.0.0.1',
+        lastMessageText: typeof data.lastMessageText === 'string' ? data.lastMessageText : '',
         messageTimes: Array.isArray(data.messageTimes)
           ? data.messageTimes.filter(Number.isFinite)
           : [],
@@ -968,12 +1301,92 @@ function isValidIceConfig(value) {
   );
 }
 
-async function createVideoIceConfig(env, hostname, sessionId) {
-  const turnUrls = parseTurnUrls(env.VIDEO_TURN_URLS);
-  const sharedSecret = typeof env.TURN_SHARED_SECRET === 'string' ? env.TURN_SHARED_SECRET : '';
+let cachedMeteredServers = null;
+let cachedMeteredExpiresAt = 0;
 
-  if (turnUrls.length > 0 && sharedSecret.length >= 32) {
-    const expiresAt = Math.floor(Date.now() / 1000) + 7_200;
+async function fetchMeteredIceServers(domain, apiKey) {
+  const now = Date.now();
+  if (cachedMeteredServers && now < cachedMeteredExpiresAt) {
+    return cachedMeteredServers;
+  }
+
+  const cleanDomain = domain
+    .trim()
+    .replace(/^https?:\/\//, '')
+    .replace(/\/.*$/, '');
+  const cleanApiKey = apiKey.trim();
+  const url = `https://${cleanDomain}/api/v1/turn/credentials?apiKey=${encodeURIComponent(cleanApiKey)}`;
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+    });
+
+    if (!response.ok) {
+      console.error(JSON.stringify({ event: 'metered_api_error', status: response.status }));
+      return null;
+    }
+
+    const data = await response.json();
+    if (!Array.isArray(data) || data.length === 0) {
+      console.error(JSON.stringify({ event: 'metered_api_empty_response' }));
+      return null;
+    }
+
+    const sanitizedServers = [];
+    for (const item of data) {
+      if (!item || typeof item !== 'object') continue;
+      const urls = Array.isArray(item.urls)
+        ? item.urls
+        : typeof item.urls === 'string'
+          ? [item.urls]
+          : [];
+      const validUrls = urls.filter(
+        (u) => typeof u === 'string' && /^(?:stun|turns?):/i.test(u.trim()),
+      );
+      if (validUrls.length === 0) continue;
+
+      const serverObj = { urls: validUrls.length === 1 ? validUrls[0] : validUrls };
+      if (typeof item.username === 'string') serverObj.username = item.username;
+      if (typeof item.credential === 'string') serverObj.credential = item.credential;
+      sanitizedServers.push(serverObj);
+    }
+
+    if (sanitizedServers.length === 0) return null;
+
+    cachedMeteredServers = sanitizedServers;
+    cachedMeteredExpiresAt = now + 600_000; // Cache for 10 minutes
+    return sanitizedServers;
+  } catch (err) {
+    console.error(JSON.stringify({ event: 'metered_fetch_failed', message: err?.message }));
+    return null;
+  }
+}
+
+async function createVideoIceConfig(env, hostname, sessionId) {
+  // Provider 1: Metered REST API (Metered TURN)
+  if (typeof env.METERED_API_KEY === 'string' && env.METERED_API_KEY.trim().length > 0) {
+    const domain =
+      typeof env.METERED_DOMAIN === 'string' && env.METERED_DOMAIN.trim().length > 0
+        ? env.METERED_DOMAIN.trim()
+        : 'globaltalk.metered.live';
+    const meteredServers = await fetchMeteredIceServers(domain, env.METERED_API_KEY);
+    if (meteredServers && meteredServers.length > 0) {
+      return {
+        iceServers: meteredServers,
+        iceTransportPolicy: 'relay',
+      };
+    }
+  }
+
+  // Provider 2: RFC 5766 HMAC-SHA1 Ephemeral Credentials (Coturn / Twilio)
+  const turnUrls = parseTurnUrls(env.VIDEO_TURN_URLS);
+  const sharedSecret =
+    typeof env.TURN_SHARED_SECRET === 'string' ? env.TURN_SHARED_SECRET.trim() : '';
+
+  if (turnUrls.length > 0 && sharedSecret.length >= 16) {
+    const expiresAt = Math.floor(Date.now() / 1000) + 3_600;
     const username = `${expiresAt}:${sessionId}`;
     const key = await crypto.subtle.importKey(
       'raw',
@@ -993,6 +1406,17 @@ async function createVideoIceConfig(env, hostname, sessionId) {
     };
   }
 
+  // Provider 3: Static Authenticated Credentials
+  const staticUser = typeof env.TURN_USERNAME === 'string' ? env.TURN_USERNAME.trim() : '';
+  const staticPass = typeof env.TURN_CREDENTIAL === 'string' ? env.TURN_CREDENTIAL.trim() : '';
+  if (turnUrls.length > 0 && staticUser.length > 0 && staticPass.length > 0) {
+    return {
+      iceServers: [{ urls: turnUrls, username: staticUser, credential: staticPass }],
+      iceTransportPolicy: 'relay',
+    };
+  }
+
+  // Development: Localhost fallback
   const isLocalHost = hostname === 'localhost' || hostname === '127.0.0.1';
   if (isLocalHost) {
     return {
@@ -1012,11 +1436,11 @@ function parseTurnUrls(value) {
     .map((item) => item.trim())
     .filter((item) => {
       const match = item.match(
-        /^turns?:(?:\/\/)?(?:\[[\da-f:]+\]|[a-z\d.-]+)(?::\d{1,5})?(?:\?transport=(?:udp|tcp))?$/i,
+        /^(?:stun|turns?):(?:\/\/)?(?:\[[\da-f:]+\]|[a-z\d.-]+)(?::\d{1,5})?(?:\?transport=(?:udp|tcp))?$/i,
       );
       return Boolean(match);
     })
-    .slice(0, 8);
+    .slice(0, 12);
 }
 
 function validateVideoSignal(rawSignal) {
@@ -1113,10 +1537,7 @@ function secureResponse(body, status, headers = {}, isHttps = false) {
   responseHeaders.set('X-Permitted-Cross-Domain-Policies', 'none');
   responseHeaders.set('X-XSS-Protection', '0');
   if (isHttps) {
-    responseHeaders.set(
-      'Strict-Transport-Security',
-      'max-age=63072000; includeSubDomains; preload',
-    );
+    responseHeaders.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   }
 
   return new Response(body, { status, headers: responseHeaders });

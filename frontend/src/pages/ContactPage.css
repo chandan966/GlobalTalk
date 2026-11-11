@@ -37,8 +37,128 @@
   color: #c7d2e8;
   font-size: 13px;
   line-height: 1.8;
+  margin-top: 15px;
 }
 
 .contact-not-configured code {
   color: #a7b6ff;
+}
+
+.grievance-section {
+  margin-top: 40px;
+  padding: 24px;
+  background: rgba(18, 25, 45, 0.7);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.grievance-section h2 {
+  font: 600 20px 'Space Grotesk';
+  margin: 0 0 10px;
+  color: #f0f4fc;
+}
+
+.grievance-lead {
+  color: #9eacc5;
+  font-size: 13px;
+  line-height: 1.7;
+  margin-bottom: 20px;
+}
+
+.grievance-card {
+  background: rgba(10, 15, 30, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.grievance-row {
+  display: flex;
+  margin-bottom: 8px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.grievance-row span {
+  color: #718096;
+  width: 140px;
+  flex-shrink: 0;
+}
+
+.grievance-row b {
+  color: #e2e8f0;
+}
+
+.grievance-row a {
+  color: #a7b6ff;
+  text-decoration: underline;
+}
+
+.grievance-timelines {
+  margin-top: 15px;
+}
+
+.grievance-timelines h3 {
+  font: 600 15px 'Space Grotesk';
+  margin: 0 0 10px;
+  color: #e2e8f0;
+}
+
+.grievance-timelines ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 15px 0;
+}
+
+.grievance-timelines li {
+  font-size: 13px;
+  color: #9eacc5;
+  padding: 6px 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+}
+
+.grievance-timelines li strong {
+  color: #c7d2e8;
+}
+
+.grievance-instructions {
+  font-size: 12px;
+  color: #718096;
+  line-height: 1.6;
+  margin-top: 15px;
+}
+
+.prelaunch-blocker {
+  margin-bottom: 24px;
+  padding: 16px 20px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 8px;
+  color: #fca5a5;
+}
+
+.prelaunch-blocker h3 {
+  margin: 0 0 8px;
+  font: 600 15px 'Space Grotesk';
+  color: #fecaca;
+}
+
+.prelaunch-blocker p {
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #fca5a5;
+}
+
+.prelaunch-blocker p:last-child {
+  margin-bottom: 0;
+}
+
+.prelaunch-blocker code {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #fff;
 }
