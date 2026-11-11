@@ -43,10 +43,6 @@ export default function ContactPage() {
       <div className="contact-action-card">
         <div className="contact-action-text">
           <h2>Direct Email Support</h2>
-          <p>
-            Tap below to open your email client directly or write to us at{' '}
-            <strong className="contact-highlight-email">{contactEmail}</strong>.
-          </p>
         </div>
         <div className="contact-action-buttons">
           <a
