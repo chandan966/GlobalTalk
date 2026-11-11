@@ -78,6 +78,16 @@ export default function RoomPage() {
     setDraft('');
   }, [roomId]);
 
+  // Auto-clear chat messages every 45 seconds for privacy and freshness
+  useEffect(() => {
+    const AUTO_CLEAR_INTERVAL_MS = 45000;
+    const timer = setInterval(() => {
+      setMessages([]);
+    }, AUTO_CLEAR_INTERVAL_MS);
+
+    return () => clearInterval(timer);
+  }, [roomId]);
+
   useEffect(() => {
     if (!room) return;
 
@@ -313,9 +323,9 @@ export default function RoomPage() {
           <div className="chat-panel-top">
             <div>
               <b>Room conversation</b>
-              <small>Live messages · not saved</small>
+              <small>Live messages · Auto-clears every 45s</small>
             </div>
-            <span className="secure-label">✦ Anonymous chat</span>
+            <span className="secure-label">✦ Anonymous · 45s Reset</span>
           </div>
 
           <div
